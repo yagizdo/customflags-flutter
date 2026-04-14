@@ -31,28 +31,10 @@ doc/api/
 **/doc/api/
 
 # ---------------------------------------------------------------------------
-# Example app (added later via `flutter create example`)
+# Example app
+# The example/ project has its own nested .gitignore files (root +
+# ios/android/macos/linux/windows). Platform-specific ignores live there.
 # ---------------------------------------------------------------------------
-example/.dart_tool/
-example/.flutter-plugins
-example/.flutter-plugins-dependencies
-example/build/
-example/ios/Pods/
-example/ios/Podfile.lock
-example/ios/.symlinks/
-example/ios/Flutter/Flutter.framework
-example/ios/Flutter/Flutter.podspec
-example/macos/Pods/
-example/macos/Podfile.lock
-example/android/.gradle/
-example/android/captures/
-example/android/local.properties
-example/android/**/GeneratedPluginRegistrant.java
-example/android/key.properties
-example/android/app/release/
-example/linux/flutter/ephemeral/
-example/windows/flutter/ephemeral/
-example/web/.dart_tool/
 
 # ---------------------------------------------------------------------------
 # IDE / Editor

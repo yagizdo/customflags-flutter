@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# Flutter / Dart / Pub
+# ---------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+/build/
+**/build/
+
+# Libraries should not commit pubspec.lock
+# https://dart.dev/guides/libraries/private-files#pubspeclock
+pubspec.lock
+
+# Generated Dart files — NOT ignored in packages.
+# Packages must ship generated code so consumers don't need build_runner.
+# Only mock files (test-only) are ignored.
+**/*.mocks.dart
+
+# Coverage & test output
+/coverage/
+coverage/
+lcov.info
+test/.test_coverage.dart
+
+# Generated API docs
+doc/api/
+**/doc/api/
+
+# ---------------------------------------------------------------------------
+# Example app (added later via `flutter create example`)
+# ---------------------------------------------------------------------------
+example/.dart_tool/
+example/.flutter-plugins
+example/.flutter-plugins-dependencies
+example/build/
+example/ios/Pods/
+example/ios/Podfile.lock
+example/ios/.symlinks/
+example/ios/Flutter/Flutter.framework
+example/ios/Flutter/Flutter.podspec
+example/macos/Pods/
+example/macos/Podfile.lock
+example/android/.gradle/
+example/android/captures/
+example/android/local.properties
+example/android/**/GeneratedPluginRegistrant.java
+example/android/key.properties
+example/android/app/release/
+example/linux/flutter/ephemeral/
+example/windows/flutter/ephemeral/
+example/web/.dart_tool/
+
+# ---------------------------------------------------------------------------
+# IDE / Editor
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+.history/
+.atom/
+.buildlog/
+
+# ---------------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# Secrets / credentials (public-repo safety)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+secrets.dart
+**/secrets/
+.pub-credentials.json
+
+# ---------------------------------------------------------------------------
+# Logs & temp
+# ---------------------------------------------------------------------------
+*.log
+*.pyc
+*.swp
+*.swo
+*~
+migrate_working_dir/
+.svn/

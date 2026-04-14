@@ -1,8 +1,18 @@
 # customflags_flutter
 
-A Flutter package for rendering customizable flags.
+A Flutter SDK for feature flags, remote configuration, and runtime toggles.
 
-> ⚠️ **Early development** — this package is under active development and the API is not yet stable. Not recommended for production use.
+Ship features safely, roll them out gradually, and change behavior without a new release.
+
+> ⚠️ **Early development** — API is not yet stable. Not recommended for production use.
+
+## Features
+
+- Boolean, string, and numeric feature flags
+- Remote-controlled values with local fallbacks
+- User/segment targeting
+- Environment-based configuration (dev / staging / prod)
+- Reactive API for widgets to rebuild when flag values change
 
 ## Installation
 
@@ -13,7 +23,7 @@ dependencies:
   customflags_flutter: ^0.0.1
 ```
 
-Then run:
+Then:
 
 ```sh
 flutter pub get
@@ -29,7 +39,10 @@ A runnable example will live under [`example/`](example/) once added.
 
 ## Roadmap
 
-- [ ] Core flag widget API
+- [ ] Core flag evaluation API
+- [ ] Remote config fetch & cache layer
+- [ ] User / segment targeting
+- [ ] Reactive widget bindings
 - [ ] Example application
 - [ ] Tests & documentation
 - [ ] Publish to pub.dev

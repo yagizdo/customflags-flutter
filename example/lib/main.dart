@@ -1,5 +1,5 @@
+import 'package:customflags/customflags.dart';
 import 'package:flutter/material.dart';
-import 'package:customflags_flutter/customflags_flutter.dart';
 
 void main() {
   runApp(const ExampleApp());
@@ -11,11 +11,8 @@ class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'customflags_flutter example',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.deepPurple,
-        useMaterial3: true,
-      ),
+      title: 'Customflags Example',
+      theme: ThemeData(colorSchemeSeed: Colors.deepPurple, useMaterial3: true),
       home: const HomePage(),
     );
   }
@@ -29,7 +26,7 @@ class HomePage extends StatelessWidget {
     final calculator = Calculator();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('customflags_flutter')),
+      appBar: AppBar(title: const Text('Customflags Example')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

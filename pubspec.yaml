@@ -1,4 +1,4 @@
-name: customflags_flutter
+name: customflags
 description: "A Flutter SDK for feature flags, remote configuration, and runtime toggles."
 version: 0.0.1
 homepage:

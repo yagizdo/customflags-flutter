@@ -1,4 +1,4 @@
-# customflags_flutter
+# customflags
 
 A Flutter SDK for feature flags, remote configuration, and runtime toggles.
 
@@ -20,7 +20,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  customflags_flutter: ^0.0.1
+  customflags: ^0.0.1
 ```
 
 Then:
@@ -32,7 +32,7 @@ flutter pub get
 ## Usage
 
 ```dart
-import 'package:customflags_flutter/customflags_flutter.dart';
+import 'package:customflags/customflags.dart';
 ```
 
 A runnable example will live under [`example/`](example/) once added.

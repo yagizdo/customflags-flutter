@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:customflags_flutter/customflags_flutter.dart';
+import 'package:customflags/customflags.dart';
 
 void main() {
   test('adds one to input values', () {

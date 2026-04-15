@@ -1,11 +1,10 @@
 name: customflags
 description: "A Flutter SDK for feature flags, remote configuration, and runtime toggles."
 version: 0.0.1
-homepage:
 
 environment:
-  sdk: ^3.11.3
-  flutter: ">=1.17.0"
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
 
 dependencies:
   flutter:

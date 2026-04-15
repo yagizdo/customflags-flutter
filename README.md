@@ -35,7 +35,7 @@ flutter pub get
 import 'package:customflags/customflags.dart';
 ```
 
-A runnable example will live under [`example/`](example/) once added.
+See [`example/`](example/) for a runnable app.
 
 ## Roadmap
 
@@ -43,7 +43,7 @@ A runnable example will live under [`example/`](example/) once added.
 - [ ] Remote config fetch & cache layer
 - [ ] User / segment targeting
 - [ ] Reactive widget bindings
-- [ ] Example application
+- [x] Example application
 - [ ] Tests & documentation
 - [ ] Publish to pub.dev
 

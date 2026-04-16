@@ -30,8 +30,8 @@ final class UnknownException extends CustomFlagsException {
   UnknownException() : super(message: 'Unknown exception');
 }
 
-final class ApiConfigurationException extends CustomFlagsException {
-  ApiConfigurationException({required super.message});
+final class ConfigurationException extends CustomFlagsException {
+  ConfigurationException({required super.message});
 }
 
 final class ApiClientException extends CustomFlagsException {

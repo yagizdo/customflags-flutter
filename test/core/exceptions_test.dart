@@ -61,15 +61,15 @@ void main() {
     });
   });
 
-  group('ApiConfigurationException', () {
+  group('ConfigurationException', () {
     test('requires message', () {
-      final exception = ApiConfigurationException(message: 'Missing API key');
+      final exception = ConfigurationException(message: 'Missing API key');
       expect(exception.message, 'Missing API key');
     });
 
     test('toString contains class name and message', () {
-      final exception = ApiConfigurationException(message: 'Invalid base URL');
-      expect(exception.toString(), contains('ApiConfigurationException'));
+      final exception = ConfigurationException(message: 'Invalid base URL');
+      expect(exception.toString(), contains('ConfigurationException'));
       expect(exception.toString(), contains('Invalid base URL'));
     });
   });

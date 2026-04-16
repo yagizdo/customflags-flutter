@@ -23,18 +23,12 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final calculator = Calculator();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Customflags Example')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Package wired up ✓'),
-            const SizedBox(height: 16),
-            Text('Calculator.addOne(1) = ${calculator.addOne(1)}'),
-          ],
+          children: [const Text('Package wired up ✓'), const SizedBox(height: 16)],
         ),
       ),
     );

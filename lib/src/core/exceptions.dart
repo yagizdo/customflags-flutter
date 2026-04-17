@@ -36,7 +36,7 @@ final class ConfigurationException extends CustomFlagsException {
 
 final class ApiClientException extends CustomFlagsException {
   final int statusCode;
-  // TODO: when added dio we can convert this to Response object
+  // TODO(dio): replace raw `body` with dio's Response once the Dio client is integrated.
   final String? body;
   ApiClientException({required this.statusCode, this.body, required super.message});
 
@@ -47,4 +47,21 @@ final class ApiClientException extends CustomFlagsException {
 
   @override
   List<Object?> get props => [message, statusCode, body];
+}
+
+final class TypeMismatchException extends CustomFlagsException {
+  final String flagKey;
+  final Type expectedType;
+  final Type actualType;
+
+  TypeMismatchException({
+    required this.flagKey,
+    required this.expectedType,
+    required this.actualType,
+  }) : super(
+         message: 'Flag "$flagKey" has type $actualType, but expected $expectedType',
+       );
+
+  @override
+  List<Object?> get props => [message, flagKey, expectedType, actualType];
 }

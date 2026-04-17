@@ -94,4 +94,5 @@ migrate_working_dir/
 # ---------------------------------------------------------------------------
 .claude/plans/
 .claude/reports/
+.claude/handovers/
 docs/

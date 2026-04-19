@@ -39,52 +39,109 @@ void main() {
     });
   });
 
-  group('FlagResponse.fromJson — bool values', () {
-    test('[FlagResponse] flags_bool.json yields two flags', () async {
-      final response = await _fromFixture('flags_bool.json');
-      expect(response.flags.length, 2);
+  group('FlagResponse.fromJson — invariants (fixture-independent)', () {
+    // These tests assert properties that must hold for ANY valid input.
+    // The assertion is derived from the input itself, not from the
+    // author's hand-picked expected value — so a logic bug that produces
+    // a hard-coded output cannot slip through regardless of what we feed.
+
+    test('[FlagResponse] fromJson produces one Flag per input map entry', () {
+      final input = <String, dynamic>{
+        'a': true,
+        'b': 'x',
+        'c': 42,
+        'd': 3.14,
+        'e': <String, dynamic>{'nested': true},
+      };
+
+      final response = FlagResponse.fromJson({'flags': input});
+
+      expect(response.flags.length, input.length);
     });
 
-    test('[FlagResponse] flags_bool.json contains dark_mode=true and notifications=false', () async {
-      final response = await _fromFixture('flags_bool.json');
-      final darkMode = response.flags.firstWhere((f) => f.key == 'dark_mode');
-      final notifications =
-          response.flags.firstWhere((f) => f.key == 'notifications');
+    test('[FlagResponse] fromJson preserves every key-value pair from the input map', () {
+      final input = <String, dynamic>{
+        'a': true,
+        'b': 'x',
+        'c': 42,
+        'd': 3.14,
+        'e': <String, dynamic>{'nested': 'y'},
+      };
 
-      expect(darkMode.getBool(), true);
-      expect(notifications.getBool(), false);
+      final response = FlagResponse.fromJson({'flags': input});
+
+      for (final entry in input.entries) {
+        final flag = response.flags.firstWhere((f) => f.key == entry.key);
+        expect(flag.value, entry.value);
+      }
+    });
+
+    test('[FlagResponse] fromJson preserves the full set of input keys', () {
+      final keys = <String>{'alpha', 'beta', 'gamma', 'delta'};
+      final input = {for (final k in keys) k: true};
+
+      final response = FlagResponse.fromJson({'flags': input});
+
+      expect(response.flags.map((f) => f.key).toSet(), keys);
     });
   });
 
-  group('FlagResponse.fromJson — String values', () {
-    test('[FlagResponse] flags_string.json yields two flags', () async {
-      final response = await _fromFixture('flags_string.json');
-      expect(response.flags.length, 2);
+  group('FlagResponse.fromJson — mixed-type fixture', () {
+    // A realistic backend response mixes value types in one payload —
+    // bools, strings, numbers, and nested JSON can all sit under
+    // different keys of the same "flags" object. This group exercises
+    // that shape instead of artificially segregating by type.
+
+    test('[FlagResponse] flags_mixed.json parses one Flag per fixture entry', () async {
+      final response = await _fromFixture('flags_mixed.json');
+      expect(response.flags.length, 7);
     });
 
-    test('[FlagResponse] flags_string.json contains theme_color=blue and language=en', () async {
-      final response = await _fromFixture('flags_string.json');
-      final theme = response.flags.firstWhere((f) => f.key == 'theme_color');
-      final language = response.flags.firstWhere((f) => f.key == 'language');
+    test('[FlagResponse] flags_mixed.json exposes bool-valued flags via getBool', () async {
+      final response = await _fromFixture('flags_mixed.json');
 
-      expect(theme.getString(), 'blue');
-      expect(language.getString(), 'en');
-    });
-  });
-
-  group('FlagResponse.fromJson — Map values', () {
-    test('[FlagResponse] flags_json.json yields one flag', () async {
-      final response = await _fromFixture('flags_json.json');
-      expect(response.flags.length, 1);
+      expect(response.flags.firstWhere((f) => f.key == 'dark_mode').getBool(), true);
+      expect(response.flags.firstWhere((f) => f.key == 'notifications_enabled').getBool(), false);
     });
 
-    test('[FlagResponse] flags_json.json ui_config holds primary_color=blue and font_size=large', () async {
-      final response = await _fromFixture('flags_json.json');
-      final config = response.flags.firstWhere((f) => f.key == 'ui_config');
-      final value = config.getJson();
+    test('[FlagResponse] flags_mixed.json exposes String-valued flags via getString', () async {
+      final response = await _fromFixture('flags_mixed.json');
 
-      expect(value['primary_color'], 'blue');
-      expect(value['font_size'], 'large');
+      expect(response.flags.firstWhere((f) => f.key == 'theme_color').getString(), 'blue');
+      expect(response.flags.firstWhere((f) => f.key == 'language').getString(), 'en');
+    });
+
+    test('[FlagResponse] flags_mixed.json exposes int-valued flag via getInt', () async {
+      final response = await _fromFixture('flags_mixed.json');
+
+      expect(response.flags.firstWhere((f) => f.key == 'max_retries').getInt(), 3);
+    });
+
+    test('[FlagResponse] flags_mixed.json exposes double-valued flag via getDouble', () async {
+      final response = await _fromFixture('flags_mixed.json');
+
+      expect(response.flags.firstWhere((f) => f.key == 'font_scale').getDouble(), 1.25);
+    });
+
+    test('[FlagResponse] flags_mixed.json exposes Map-valued flag via getJson', () async {
+      final response = await _fromFixture('flags_mixed.json');
+      final config = response.flags.firstWhere((f) => f.key == 'ui_config').getJson();
+
+      expect(config['primary_color'], 'blue');
+      expect(config['font_size'], 'large');
+    });
+
+    test('[FlagResponse] flags_mixed.json preserves heterogeneous value types side by side', () async {
+      // Invariant-style assertion: each key's value type in the parsed
+      // output matches what was in the fixture. Catches any accidental
+      // type coercion in the dynamic pipeline.
+      final response = await _fromFixture('flags_mixed.json');
+
+      expect(response.flags.firstWhere((f) => f.key == 'dark_mode').value, isA<bool>());
+      expect(response.flags.firstWhere((f) => f.key == 'theme_color').value, isA<String>());
+      expect(response.flags.firstWhere((f) => f.key == 'max_retries').value, isA<int>());
+      expect(response.flags.firstWhere((f) => f.key == 'font_scale').value, isA<double>());
+      expect(response.flags.firstWhere((f) => f.key == 'ui_config').value, isA<Map<String, dynamic>>());
     });
   });
 

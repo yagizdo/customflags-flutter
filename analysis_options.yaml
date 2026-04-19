@@ -1,4 +1,26 @@
 include: package:flutter_lints/flutter.yaml
 
+# Rationale for each enabled lint lives in .claude/rules/code_style.md
+linter:
+  rules:
+    # Imports
+    prefer_relative_imports: true
+
+    # Async safety
+    unawaited_futures: true
+
+    # Dynamic discipline
+    avoid_dynamic_calls: true
+
+    # Resource cleanup
+    cancel_subscriptions: true
+    close_sinks: true
+
+    # Style
+    prefer_single_quotes: true
+
+    # Package hygiene (pub.dev scoring)
+    sort_pub_dependencies: true
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

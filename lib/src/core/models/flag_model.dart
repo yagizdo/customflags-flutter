@@ -4,7 +4,7 @@ import '../exceptions.dart';
 
 class Flag extends Equatable {
   final String key;
-  final dynamic value;
+  final Object? value;
 
   const Flag({required this.key, required this.value});
 
@@ -13,6 +13,9 @@ class Flag extends Equatable {
 
   bool getBool() {
     final v = value;
+    if (v == null) {
+      throw NullFlagValueException(flagKey: key);
+    }
     if (v is bool) {
       return v;
     }
@@ -21,6 +24,9 @@ class Flag extends Equatable {
 
   String getString() {
     final v = value;
+    if (v == null) {
+      throw NullFlagValueException(flagKey: key);
+    }
     if (v is String) {
       return v;
     }
@@ -29,6 +35,9 @@ class Flag extends Equatable {
 
   int getInt() {
     final v = value;
+    if (v == null) {
+      throw NullFlagValueException(flagKey: key);
+    }
     if (v is int) {
       return v;
     }
@@ -37,7 +46,10 @@ class Flag extends Equatable {
 
   double getDouble() {
     final v = value;
-    if (v is num) {
+    if (v == null) {
+      throw NullFlagValueException(flagKey: key);
+    }
+    if (v is num && v.isFinite) {
       return v.toDouble();
     }
     throw TypeMismatchException(flagKey: key, expectedType: double, actualType: v.runtimeType);
@@ -45,6 +57,9 @@ class Flag extends Equatable {
 
   Map<String, dynamic> getJson() {
     final v = value;
+    if (v == null) {
+      throw NullFlagValueException(flagKey: key);
+    }
     if (v is Map<String, dynamic>) {
       return v;
     }

@@ -93,6 +93,22 @@ void main() {
         ),
       );
     });
+
+    test('[Flag.getBool] throws NullFlagValueException when value is null', () {
+      const flag = Flag(key: 'dark_mode', value: null);
+      expect(flag.getBool, throwsA(isA<NullFlagValueException>()));
+    });
+
+    test('[Flag.getBool] null exception reports flag key', () {
+      const flag = Flag(key: 'dark_mode', value: null);
+      expect(
+        flag.getBool,
+        throwsA(
+          isA<NullFlagValueException>()
+              .having((e) => e.flagKey, 'flagKey', 'dark_mode'),
+        ),
+      );
+    });
   });
 
   group('Flag.getString', () {
@@ -110,6 +126,11 @@ void main() {
       const flag = Flag(key: 'theme_color', value: 42);
       expect(flag.getString, throwsA(isA<TypeMismatchException>()));
     });
+
+    test('[Flag.getString] throws NullFlagValueException when value is null', () {
+      const flag = Flag(key: 'theme_color', value: null);
+      expect(flag.getString, throwsA(isA<NullFlagValueException>()));
+    });
   });
 
   group('Flag.getInt', () {
@@ -126,6 +147,11 @@ void main() {
     test('[Flag.getInt] throws TypeMismatchException when value is a String', () {
       const flag = Flag(key: 'max_retries', value: '3');
       expect(flag.getInt, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getInt] throws NullFlagValueException when value is null', () {
+      const flag = Flag(key: 'max_retries', value: null);
+      expect(flag.getInt, throwsA(isA<NullFlagValueException>()));
     });
   });
 
@@ -152,6 +178,29 @@ void main() {
       const flag = Flag(key: 'font_scale', value: true);
       expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
     });
+
+    test('[Flag.getDouble] throws TypeMismatchException when value is NaN', () {
+      // NaN is num, so a naive `is num` check would let it through. Rejecting
+      // it here prevents silent propagation — e.g. NaN > 1.0 evaluates false
+      // and surfaces far from the source as a render/layout bug.
+      const flag = Flag(key: 'font_scale', value: double.nan);
+      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getDouble] throws TypeMismatchException when value is positive infinity', () {
+      const flag = Flag(key: 'font_scale', value: double.infinity);
+      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getDouble] throws TypeMismatchException when value is negative infinity', () {
+      const flag = Flag(key: 'font_scale', value: double.negativeInfinity);
+      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getDouble] throws NullFlagValueException when value is null', () {
+      const flag = Flag(key: 'font_scale', value: null);
+      expect(flag.getDouble, throwsA(isA<NullFlagValueException>()));
+    });
   });
 
   group('Flag.getJson', () {
@@ -172,6 +221,11 @@ void main() {
     test('[Flag.getJson] throws TypeMismatchException when value is a List', () {
       const flag = Flag(key: 'ui_config', value: [1, 2, 3]);
       expect(flag.getJson, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getJson] throws NullFlagValueException when value is null', () {
+      const flag = Flag(key: 'ui_config', value: null);
+      expect(flag.getJson, throwsA(isA<NullFlagValueException>()));
     });
   });
 }

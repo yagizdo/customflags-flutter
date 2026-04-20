@@ -65,3 +65,13 @@ final class TypeMismatchException extends CustomFlagsException {
   @override
   List<Object?> get props => [message, flagKey, expectedType, actualType];
 }
+
+final class NullFlagValueException extends CustomFlagsException {
+  final String flagKey;
+
+  NullFlagValueException({required this.flagKey})
+    : super(message: 'Flag "$flagKey" has no value (null)');
+
+  @override
+  List<Object?> get props => [message, flagKey];
+}

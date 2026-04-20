@@ -159,4 +159,26 @@ void main() {
       expect(a, isNot(equals(c)));
     });
   });
+
+  group('NullFlagValueException', () {
+    test('[NullFlagValueException] builds message from flagKey', () {
+      final exception = NullFlagValueException(flagKey: 'dark_mode');
+      expect(exception.message, 'Flag "dark_mode" has no value (null)');
+    });
+
+    test('[NullFlagValueException] toString includes runtime type and flagKey', () {
+      final exception = NullFlagValueException(flagKey: 'theme_color');
+      expect(exception.toString(), contains('NullFlagValueException'));
+      expect(exception.toString(), contains('theme_color'));
+    });
+
+    test('[NullFlagValueException] instances with identical flagKey are equal', () {
+      final a = NullFlagValueException(flagKey: 'dark_mode');
+      final b = NullFlagValueException(flagKey: 'dark_mode');
+      final c = NullFlagValueException(flagKey: 'theme_color');
+
+      expect(a, equals(b));
+      expect(a, isNot(equals(c)));
+    });
+  });
 }

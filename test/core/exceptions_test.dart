@@ -181,4 +181,52 @@ void main() {
       expect(a, isNot(equals(c)));
     });
   });
+
+  group('MalformedResponseException', () {
+    test('[MalformedResponseException] builds message from field, expected and actual types', () {
+      final exception = MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: List<int>,
+      );
+      expect(
+        exception.message,
+        'Malformed response: expected "flags" to be Map<String, dynamic>, got List<int>',
+      );
+    });
+
+    test('[MalformedResponseException] toString includes runtime type and field name', () {
+      final exception = MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: String,
+      );
+      final str = exception.toString();
+      expect(str, contains('MalformedResponseException'));
+      expect(str, contains('flags'));
+      expect(str, contains('Map<String, dynamic>'));
+      expect(str, contains('String'));
+    });
+
+    test('[MalformedResponseException] instances with identical fields are equal', () {
+      final a = MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: List<int>,
+      );
+      final b = MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: List<int>,
+      );
+      final c = MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: String,
+      );
+
+      expect(a, equals(b));
+      expect(a, isNot(equals(c)));
+    });
+  });
 }

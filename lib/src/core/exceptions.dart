@@ -75,3 +75,21 @@ final class NullFlagValueException extends CustomFlagsException {
   @override
   List<Object?> get props => [message, flagKey];
 }
+
+final class MalformedResponseException extends CustomFlagsException {
+  final String field;
+  final Type expectedType;
+  final Type actualType;
+
+  MalformedResponseException({
+    required this.field,
+    required this.expectedType,
+    required this.actualType,
+  }) : super(
+         message:
+             'Malformed response: expected "$field" to be $expectedType, got $actualType',
+       );
+
+  @override
+  List<Object?> get props => [message, field, expectedType, actualType];
+}

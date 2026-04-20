@@ -11,10 +11,10 @@ class FlagResponse extends Equatable {
   factory FlagResponse.fromJson(Map<String, dynamic> json) {
     final raw = json['flags'];
     if (raw is! Map<String, dynamic>) {
-      throw ApiClientException(
-        statusCode: -1,
-        body: raw?.toString(),
-        message: 'Malformed flag response: expected "flags" to be a Map<String, dynamic>, got ${raw.runtimeType}',
+      throw MalformedResponseException(
+        field: 'flags',
+        expectedType: Map<String, dynamic>,
+        actualType: raw.runtimeType,
       );
     }
     return FlagResponse(

@@ -183,33 +183,33 @@ void main() {
     // drift). The contract: every structural failure must land inside the
     // sealed CustomFlagsException hierarchy so consumers can catch it.
 
-    test('[FlagResponse] throws ApiClientException when "flags" key is missing', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" key is missing', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{}),
-        throwsA(isA<ApiClientException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws ApiClientException when "flags" is null', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is null', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
-        throwsA(isA<ApiClientException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws ApiClientException when "flags" is a List', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is a List', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{
           'flags': <int>[1, 2, 3],
         }),
-        throwsA(isA<ApiClientException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws ApiClientException when "flags" is a String', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is a String', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': 'nope'}),
-        throwsA(isA<ApiClientException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 

@@ -175,4 +175,52 @@ void main() {
       expect(response.flags, isEmpty);
     });
   });
+
+  group('FlagResponse.fromJson — malformed envelopes', () {
+    // These cover the real-world failure modes where the server returns a
+    // 200 with a body that doesn't match the expected shape (upstream proxy
+    // stripping nulls, config service sending "no flags defined", schema
+    // drift). The contract: every structural failure must land inside the
+    // sealed CustomFlagsException hierarchy so consumers can catch it.
+
+    test('[FlagResponse] throws ApiClientException when "flags" key is missing', () {
+      expect(
+        () => FlagResponse.fromJson(const <String, dynamic>{}),
+        throwsA(isA<ApiClientException>()),
+      );
+    });
+
+    test('[FlagResponse] throws ApiClientException when "flags" is null', () {
+      expect(
+        () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
+        throwsA(isA<ApiClientException>()),
+      );
+    });
+
+    test('[FlagResponse] throws ApiClientException when "flags" is a List', () {
+      expect(
+        () => FlagResponse.fromJson(const <String, dynamic>{
+          'flags': <int>[1, 2, 3],
+        }),
+        throwsA(isA<ApiClientException>()),
+      );
+    });
+
+    test('[FlagResponse] throws ApiClientException when "flags" is a String', () {
+      expect(
+        () => FlagResponse.fromJson(const <String, dynamic>{'flags': 'nope'}),
+        throwsA(isA<ApiClientException>()),
+      );
+    });
+
+    test('[FlagResponse] malformed envelope errors fall under CustomFlagsException', () {
+      // Invariant: whatever concrete type we throw for a structural failure,
+      // it must be a member of the sealed hierarchy. A regression that
+      // re-introduces a raw _TypeError would fail this test.
+      expect(
+        () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
+        throwsA(isA<CustomFlagsException>()),
+      );
+    });
+  });
 }

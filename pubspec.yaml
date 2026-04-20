@@ -7,18 +7,13 @@ environment:
   flutter: ">=3.10.0"
 
 dependencies:
+  equatable: 2.0.8
   flutter:
     sdk: flutter
 
-  # Core
-  json_annotation: 4.11.0
-  equatable: 2.0.8
-
 dev_dependencies:
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: 6.0.0
-  build_runner: 2.13.1
-  json_serializable: 6.13.1
 
 flutter:

@@ -1,0 +1,14 @@
+{
+  "flags": {
+    "dark_mode": true,
+    "notifications_enabled": false,
+    "theme_color": "blue",
+    "language": "en",
+    "max_retries": 3,
+    "font_scale": 1.25,
+    "ui_config": {
+      "primary_color": "blue",
+      "font_size": "large"
+    }
+  }
+}

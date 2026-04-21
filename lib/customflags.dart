@@ -8,3 +8,4 @@ library;
 
 export 'src/core/exceptions.dart';
 export 'src/core/models/flag_model.dart';
+export 'src/customflag_config.dart';

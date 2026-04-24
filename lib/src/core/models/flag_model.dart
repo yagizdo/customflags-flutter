@@ -7,8 +7,7 @@ import '../exceptions.dart';
 /// Read the flag's value through the typed getter that matches its
 /// stored type — [getBool], [getString], [getInt], [getDouble], or
 /// [getJson]. Each getter throws [TypeMismatchException] when the
-/// stored value is of a different type, and [NullFlagValueException]
-/// when the value is `null`.
+/// stored value is of a different type or `null`.
 class Flag extends Equatable {
   /// Identifier used to look up the flag — matches the key configured
   /// on the CustomFlags dashboard (e.g. `'dark_mode'`, `'checkout_v2'`).
@@ -27,12 +26,11 @@ class Flag extends Equatable {
 
   /// Returns the flag's value as a [bool].
   ///
-  /// Throws [NullFlagValueException] if the value is `null`, or
-  /// [TypeMismatchException] if the value is not a [bool].
+  /// Throws [TypeMismatchException] if the value is `null` or not a [bool].
   bool getBool() {
     final v = value;
     if (v == null) {
-      throw NullFlagValueException(flagKey: key);
+      throw TypeMismatchException(flagKey: key, expectedType: bool, actualType: Null);
     }
     if (v is bool) {
       return v;
@@ -42,12 +40,11 @@ class Flag extends Equatable {
 
   /// Returns the flag's value as a [String].
   ///
-  /// Throws [NullFlagValueException] if the value is `null`, or
-  /// [TypeMismatchException] if the value is not a [String].
+  /// Throws [TypeMismatchException] if the value is `null` or not a [String].
   String getString() {
     final v = value;
     if (v == null) {
-      throw NullFlagValueException(flagKey: key);
+      throw TypeMismatchException(flagKey: key, expectedType: String, actualType: Null);
     }
     if (v is String) {
       return v;
@@ -57,12 +54,11 @@ class Flag extends Equatable {
 
   /// Returns the flag's value as an [int].
   ///
-  /// Throws [NullFlagValueException] if the value is `null`, or
-  /// [TypeMismatchException] if the value is not an [int].
+  /// Throws [TypeMismatchException] if the value is `null` or not an [int].
   int getInt() {
     final v = value;
     if (v == null) {
-      throw NullFlagValueException(flagKey: key);
+      throw TypeMismatchException(flagKey: key, expectedType: int, actualType: Null);
     }
     if (v is int) {
       return v;
@@ -73,13 +69,12 @@ class Flag extends Equatable {
   /// Returns the flag's value as a [double].
   ///
   /// Accepts any finite number — values stored as `int` or `double`
-  /// are both returned as [double]. Throws [NullFlagValueException]
-  /// if the value is `null`, or [TypeMismatchException] if the value
-  /// is not a finite number.
+  /// are both returned as [double]. Throws [TypeMismatchException]
+  /// if the value is `null` or not a finite number.
   double getDouble() {
     final v = value;
     if (v == null) {
-      throw NullFlagValueException(flagKey: key);
+      throw TypeMismatchException(flagKey: key, expectedType: double, actualType: Null);
     }
     if (v is num && v.isFinite) {
       return v.toDouble();
@@ -89,12 +84,11 @@ class Flag extends Equatable {
 
   /// Returns the flag's value as a JSON object (`Map<String, dynamic>`).
   ///
-  /// Throws [NullFlagValueException] if the value is `null`, or
-  /// [TypeMismatchException] if the value is not a JSON object.
+  /// Throws [TypeMismatchException] if the value is `null` or not a JSON object.
   Map<String, dynamic> getJson() {
     final v = value;
     if (v == null) {
-      throw NullFlagValueException(flagKey: key);
+      throw TypeMismatchException(flagKey: key, expectedType: Map<String, dynamic>, actualType: Null);
     }
     if (v is Map<String, dynamic>) {
       return v;

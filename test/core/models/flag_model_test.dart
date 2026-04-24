@@ -94,18 +94,19 @@ void main() {
       );
     });
 
-    test('[Flag.getBool] throws NullFlagValueException when value is null', () {
+    test('[Flag.getBool] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'dark_mode', value: null);
-      expect(flag.getBool, throwsA(isA<NullFlagValueException>()));
+      expect(flag.getBool, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getBool] null exception reports flag key', () {
+    test('[Flag.getBool] null exception reports flag key and Null type', () {
       const flag = Flag(key: 'dark_mode', value: null);
       expect(
         flag.getBool,
         throwsA(
-          isA<NullFlagValueException>()
-              .having((e) => e.flagKey, 'flagKey', 'dark_mode'),
+          isA<TypeMismatchException>()
+              .having((e) => e.flagKey, 'flagKey', 'dark_mode')
+              .having((e) => e.actualType, 'actualType', Null),
         ),
       );
     });
@@ -127,9 +128,9 @@ void main() {
       expect(flag.getString, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getString] throws NullFlagValueException when value is null', () {
+    test('[Flag.getString] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'theme_color', value: null);
-      expect(flag.getString, throwsA(isA<NullFlagValueException>()));
+      expect(flag.getString, throwsA(isA<TypeMismatchException>()));
     });
   });
 
@@ -149,9 +150,9 @@ void main() {
       expect(flag.getInt, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getInt] throws NullFlagValueException when value is null', () {
+    test('[Flag.getInt] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'max_retries', value: null);
-      expect(flag.getInt, throwsA(isA<NullFlagValueException>()));
+      expect(flag.getInt, throwsA(isA<TypeMismatchException>()));
     });
   });
 
@@ -197,9 +198,9 @@ void main() {
       expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getDouble] throws NullFlagValueException when value is null', () {
+    test('[Flag.getDouble] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'font_scale', value: null);
-      expect(flag.getDouble, throwsA(isA<NullFlagValueException>()));
+      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
     });
   });
 
@@ -223,9 +224,9 @@ void main() {
       expect(flag.getJson, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getJson] throws NullFlagValueException when value is null', () {
+    test('[Flag.getJson] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'ui_config', value: null);
-      expect(flag.getJson, throwsA(isA<NullFlagValueException>()));
+      expect(flag.getJson, throwsA(isA<TypeMismatchException>()));
     });
   });
 }

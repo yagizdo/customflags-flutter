@@ -14,15 +14,14 @@ class FlagResponse extends Equatable {
 
   /// Parses a [FlagResponse] from the backend's JSON envelope.
   ///
-  /// Throws [MalformedResponseException] when the payload is missing
+  /// Throws [CustomFlagsException] when the payload is missing
   /// the `flags` field, or `flags` is not a JSON object.
   factory FlagResponse.fromJson(Map<String, dynamic> json) {
     final raw = json['flags'];
     if (raw is! Map<String, dynamic>) {
-      throw MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: raw.runtimeType,
+      throw CustomFlagsException(
+        message:
+            'Malformed response: expected "flags" to be Map<String, dynamic>, got ${raw.runtimeType}',
       );
     }
     return FlagResponse(

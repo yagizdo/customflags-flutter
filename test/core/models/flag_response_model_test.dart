@@ -181,35 +181,35 @@ void main() {
     // 200 with a body that doesn't match the expected shape (upstream proxy
     // stripping nulls, config service sending "no flags defined", schema
     // drift). The contract: every structural failure must land inside the
-    // sealed CustomFlagsException hierarchy so consumers can catch it.
+    // CustomFlagsException hierarchy so consumers can catch it.
 
-    test('[FlagResponse] throws MalformedResponseException when "flags" key is missing', () {
+    test('[FlagResponse] throws CustomFlagsException when "flags" key is missing', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{}),
-        throwsA(isA<MalformedResponseException>()),
+        throwsA(isA<CustomFlagsException>()),
       );
     });
 
-    test('[FlagResponse] throws MalformedResponseException when "flags" is null', () {
+    test('[FlagResponse] throws CustomFlagsException when "flags" is null', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
-        throwsA(isA<MalformedResponseException>()),
+        throwsA(isA<CustomFlagsException>()),
       );
     });
 
-    test('[FlagResponse] throws MalformedResponseException when "flags" is a List', () {
+    test('[FlagResponse] throws CustomFlagsException when "flags" is a List', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{
           'flags': <int>[1, 2, 3],
         }),
-        throwsA(isA<MalformedResponseException>()),
+        throwsA(isA<CustomFlagsException>()),
       );
     });
 
-    test('[FlagResponse] throws MalformedResponseException when "flags" is a String', () {
+    test('[FlagResponse] throws CustomFlagsException when "flags" is a String', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': 'nope'}),
-        throwsA(isA<MalformedResponseException>()),
+        throwsA(isA<CustomFlagsException>()),
       );
     });
 

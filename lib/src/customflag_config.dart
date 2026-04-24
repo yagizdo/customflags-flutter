@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 
 import 'core/exceptions.dart';
 
@@ -19,6 +21,7 @@ import 'core/exceptions.dart';
 final class CustomFlagConfig extends Equatable {
   static const defaultConnectTimeout = Duration(seconds: 10);
   static const defaultReceiveTimeout = Duration(seconds: 20);
+  static const defaultSendTimeout = Duration(seconds: 20);
 
   /// Credential identifying your project with the CustomFlags backend.
   /// Get your API key from the CustomFlags dashboard; must not be empty or a
@@ -38,10 +41,17 @@ final class CustomFlagConfig extends Equatable {
   /// [Duration.zero].
   final Duration receiveTimeout;
 
+  /// Timeout for sending requests.
+  ///
+  /// Defaults to [defaultSendTimeout]. Must be greater than [Duration.zero].
+  /// Ignored on web platforms.
+  final Duration sendTimeout;
+
   CustomFlagConfig({
     required this.apiKey,
     this.connectTimeout = defaultConnectTimeout,
     this.receiveTimeout = defaultReceiveTimeout,
+    this.sendTimeout = defaultSendTimeout,
   }) {
     if (apiKey.isEmpty) {
       throw ConfigurationException(
@@ -59,8 +69,20 @@ final class CustomFlagConfig extends Equatable {
         message: 'Receive timeout must be greater than 0, got: $receiveTimeout',
       );
     }
+
+    if (sendTimeout <= Duration.zero) {
+      throw ConfigurationException(
+        message: 'Send timeout must be greater than 0, got: $sendTimeout',
+      );
+    }
   }
 
+  BaseOptions get baseOptions => BaseOptions(
+        connectTimeout: connectTimeout,
+        receiveTimeout: receiveTimeout,
+        sendTimeout: kIsWeb ? null : sendTimeout,
+      );
+
   @override
-  List<Object?> get props => [apiKey, connectTimeout, receiveTimeout];
+  List<Object?> get props => [apiKey, connectTimeout, receiveTimeout, sendTimeout];
 }

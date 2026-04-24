@@ -36,19 +36,39 @@ class ApiClient {
         kCustomFlagFlagsEndpoint,
         queryParameters: {kCustomFlagFlagsUserQueryParam: userId},
       );
-      final flagResponse =
-          FlagResponse.fromJson(response.data as Map<String, dynamic>);
-      return flagResponse.flags;
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw CustomFlagApiException(
+          statusCode: response.statusCode,
+          body: data?.toString(),
+          message: 'Expected JSON object, got ${data.runtimeType}',
+        );
+      }
+
+      return FlagResponse.fromJson(data).flags;
+    } on CustomFlagsException {
+      rethrow;
     } on DioException catch (e) {
       throw _mapDioException(e);
     }
   }
 
   CustomFlagApiException _mapDioException(DioException e) {
+    final message = switch (e.type) {
+      DioExceptionType.connectionTimeout => 'Connection timed out',
+      DioExceptionType.receiveTimeout => 'Response timed out',
+      DioExceptionType.sendTimeout => 'Send timed out',
+      DioExceptionType.connectionError => 'Could not reach server',
+      DioExceptionType.badResponse =>
+        'Server returned ${e.response?.statusCode}',
+      _ => e.message ?? 'Request failed',
+    };
+
     return CustomFlagApiException(
       statusCode: e.response?.statusCode,
       body: e.response?.data?.toString(),
-      message: e.message ?? 'Request failed',
+      message: message,
     );
   }
 

@@ -9,3 +9,5 @@ library;
 export 'src/core/exceptions.dart';
 export 'src/core/models/flag_model.dart';
 export 'src/customflag_config.dart';
+export 'src/customflag_client.dart';
+export 'src/core/models/identity.dart';

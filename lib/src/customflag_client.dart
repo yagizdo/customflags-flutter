@@ -76,8 +76,38 @@ class CustomFlagClient {
   /// connection, timeout), HTTP errors (4xx, 5xx), or malformed
   /// responses where the backend did not return a JSON object.
   Future<List<Flag>> fetchAllFlags() async {
+    final identity = _checkIdentity();
+    return await _api.fetchAllFlags(identity: identity);
+  }
+
+  /// Fetches the single [Flag] identified by [featureKey] for the current
+  /// [Identity] from the CustomFlags backend.
+  ///
+  /// Read the value from the returned flag with the typed getter that
+  /// matches its stored type — [Flag.getBool], [Flag.getString],
+  /// [Flag.getInt], [Flag.getDouble], or [Flag.getJson]:
+  ///
+  /// ```dart
+  /// final flag = await client.getFlag('dark_mode');
+  /// final isDark = flag.getBool();
+  /// ```
+  ///
+  /// Throws [ArgumentError] if [featureKey] is empty. Throws
+  /// [ConfigurationException] if [setIdentity] has not been called yet.
+  /// Throws [CustomFlagApiException] on network failures (no connection,
+  /// timeout), HTTP errors (4xx, 5xx), or malformed responses where the
+  /// backend did not return a JSON object.
+  Future<Flag> getFlag(String featureKey) async {
+    final identity = _checkIdentity();
+    if (featureKey.isEmpty) {
+      throw ArgumentError.value(featureKey, 'featureKey', 'must not be empty');
+    }
+    return await _api.fetchFlag(identity: identity, featureKey: featureKey);
+  }
+
+  Identity _checkIdentity() {
     final identity = _identity;
     if (identity == null) throw ConfigurationException(message: 'setIdentity must be called before fetching flags');
-    return await _api.fetchAllFlags(identity: identity);
+    return identity;
   }
 }

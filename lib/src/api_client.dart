@@ -55,6 +55,39 @@ class ApiClient {
     }
   }
 
+  Future<Flag> fetchFlag({required Identity identity, required String featureKey}) async {
+    try {
+      final response = await _dio.get(
+        kCustomFlagSingleFlagEndpoint(featureKey),
+        queryParameters: {kCustomFlagFlagsUserQueryParam: identity.identifier},
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw CustomFlagApiException(
+          statusCode: response.statusCode,
+          body: data?.toString(),
+          message: 'Expected JSON object, got ${data.runtimeType}',
+        );
+      }
+      final flags = FlagResponse.fromJson(data).flags;
+
+      if (flags.length != 1) {
+        throw CustomFlagApiException(
+          statusCode: response.statusCode,
+          body: data.toString(),
+          message: 'Expected exactly 1 flag for "$featureKey", got ${flags.length}',
+        );
+      }
+
+      return flags.first;
+    } on CustomFlagsException {
+      rethrow;
+    } on DioException catch (e) {
+      throw _mapDioException(e);
+    }
+  }
+
   CustomFlagApiException _mapDioException(DioException e) {
     final message = switch (e.type) {
       DioExceptionType.connectionTimeout => 'Connection timed out',

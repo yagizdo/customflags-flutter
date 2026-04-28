@@ -2,19 +2,6 @@ import 'package:customflags/customflags.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('CustomFlagsException', () {
-    test('[CustomFlagsException] stores the provided message', () {
-      final exception = CustomFlagsException(message: 'Something went wrong');
-      expect(exception.message, 'Something went wrong');
-    });
-
-    test('[CustomFlagsException] toString includes runtime type and message', () {
-      final exception = CustomFlagsException(message: 'test error');
-      expect(exception.toString(), contains('CustomFlagsException'));
-      expect(exception.toString(), contains('test error'));
-    });
-  });
-
   group('ConfigurationException', () {
     test('[ConfigurationException] stores the provided message', () {
       final exception = ConfigurationException(message: 'Missing API key');
@@ -51,7 +38,7 @@ void main() {
       expect(exception.body, isNull);
     });
 
-    test('[CustomFlagApiException] toString includes statusCode and body', () {
+    test('[CustomFlagApiException] toString includes statusCode and message but not body', () {
       final exception = CustomFlagApiException(
         statusCode: 422,
         body: 'validation failed',
@@ -60,7 +47,42 @@ void main() {
       final str = exception.toString();
       expect(str, contains('CustomFlagApiException'));
       expect(str, contains('422'));
-      expect(str, contains('validation failed'));
+      expect(str, contains('Unprocessable'));
+      expect(str, isNot(contains('validation failed')));
+    });
+
+    test('[CustomFlagApiException] body sanitization replaces control characters with spaces', () {
+      final exception = CustomFlagApiException(
+        statusCode: 500,
+        body: 'line1\nline2\rline3\x00null',
+        message: 'err',
+      );
+      expect(exception.body, 'line1 line2 line3 null');
+    });
+
+    test('[CustomFlagApiException] body is preserved as-is when within the size limit', () {
+      final exception = CustomFlagApiException(
+        statusCode: 400,
+        body: 'short body',
+        message: 'err',
+      );
+      expect(exception.body, 'short body');
+    });
+
+    test('[CustomFlagApiException] body is truncated when longer than 512 characters', () {
+      final long = 'a' * 600;
+      final exception = CustomFlagApiException(
+        statusCode: 500,
+        body: long,
+        message: 'err',
+      );
+      expect(exception.body, startsWith('a' * 512));
+      expect(exception.body, contains('truncated 88 chars'));
+    });
+
+    test('[CustomFlagApiException] body remains null when none provided', () {
+      final exception = CustomFlagApiException(message: 'connection timeout');
+      expect(exception.body, isNull);
     });
 
     test('[CustomFlagApiException] instances with identical fields are equal', () {
@@ -137,6 +159,42 @@ void main() {
         actualType: String,
       );
       expect(exception, isA<CustomFlagsException>());
+    });
+  });
+
+  group('MalformedResponseException', () {
+    test('[MalformedResponseException] stores the provided message', () {
+      final exception = MalformedResponseException(message: 'flags missing');
+      expect(exception.message, 'flags missing');
+    });
+
+    test('[MalformedResponseException] is a CustomFlagsException', () {
+      final exception = MalformedResponseException(message: 'x');
+      expect(exception, isA<CustomFlagsException>());
+    });
+
+    test('[MalformedResponseException] toString includes runtime type and message', () {
+      final exception = MalformedResponseException(message: 'bad envelope');
+      expect(exception.toString(), contains('MalformedResponseException'));
+      expect(exception.toString(), contains('bad envelope'));
+    });
+  });
+
+  group('InvalidFlagValueException', () {
+    test('[InvalidFlagValueException] stores the provided message', () {
+      final exception = InvalidFlagValueException(message: 'value is NaN');
+      expect(exception.message, 'value is NaN');
+    });
+
+    test('[InvalidFlagValueException] is a CustomFlagsException', () {
+      final exception = InvalidFlagValueException(message: 'x');
+      expect(exception, isA<CustomFlagsException>());
+    });
+
+    test('[InvalidFlagValueException] toString includes runtime type and message', () {
+      final exception = InvalidFlagValueException(message: 'value out of range');
+      expect(exception.toString(), contains('InvalidFlagValueException'));
+      expect(exception.toString(), contains('value out of range'));
     });
   });
 }

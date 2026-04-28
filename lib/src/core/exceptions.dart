@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../constants/regex_patterns.dart';
+
 /// Base class for all exceptions thrown by the CustomFlags SDK.
 ///
 /// Catch [CustomFlagsException] to handle every SDK-originated error in
@@ -9,14 +11,16 @@ import 'package:equatable/equatable.dart';
 ///
 /// ```dart
 /// try {
-///   final flags = await client.fetchAllFlags(userId: 'abc');
+///   final flags = await client.fetchAllFlags();
 /// } on CustomFlagApiException catch (e) {
 ///   log('HTTP ${e.statusCode}: ${e.body}');
+/// } on MalformedResponseException catch (e) {
+///   log('Bad response shape: ${e.message}');
 /// } on CustomFlagsException catch (e) {
 ///   log('SDK error: $e');
 /// }
 /// ```
-class CustomFlagsException with EquatableMixin implements Exception {
+abstract class CustomFlagsException with EquatableMixin implements Exception {
   final String message;
 
   CustomFlagsException({required this.message});
@@ -47,13 +51,29 @@ final class CustomFlagApiException extends CustomFlagsException {
   /// (connection timeout, DNS failure, no internet).
   final int? statusCode;
 
-  /// The raw response body, or `null` when no body was available.
+  /// The response body returned by the backend, with control characters
+  /// (CR, LF, NUL, etc.) replaced by spaces to prevent log injection,
+  /// and truncated to [_maxBodyChars] characters when longer.
+  ///
+  /// Not included in [toString] by default — access this field
+  /// explicitly when you want to display or log the response detail.
   final String? body;
 
-  CustomFlagApiException({this.statusCode, this.body, required super.message});
+  static const int _maxBodyChars = 512;
+
+  CustomFlagApiException({this.statusCode, String? body, required super.message})
+      : body = _sanitizeAndTruncate(body);
+
+  static String? _sanitizeAndTruncate(String? raw) {
+    if (raw == null) return null;
+    final cleaned = raw.replaceAll(kLogInjectionControlCharsPattern, ' ');
+    return cleaned.length <= _maxBodyChars
+        ? cleaned
+        : '${cleaned.substring(0, _maxBodyChars)}... [truncated ${cleaned.length - _maxBodyChars} chars]';
+  }
 
   @override
-  String toString() => '$runtimeType(message: $message, statusCode: $statusCode, body: $body)';
+  String toString() => '$runtimeType(message: $message, statusCode: $statusCode)';
 
   @override
   List<Object?> get props => [message, statusCode, body];
@@ -86,4 +106,18 @@ final class TypeMismatchException extends CustomFlagsException {
 
   @override
   List<Object?> get props => [message, flagKey, expectedType, actualType];
+}
+
+/// Thrown when the backend response does not match the expected
+/// envelope shape — for example a missing `flags` key, or `flags`
+/// being a non-Map value.
+final class MalformedResponseException extends CustomFlagsException {
+  MalformedResponseException({required super.message});
+}
+
+/// Thrown when a flag's stored value is well-typed but not valid for
+/// the requested type — for example a non-finite double (`NaN`,
+/// `Infinity`) returned from [Flag.getDouble].
+final class InvalidFlagValueException extends CustomFlagsException {
+  InvalidFlagValueException({required super.message});
 }

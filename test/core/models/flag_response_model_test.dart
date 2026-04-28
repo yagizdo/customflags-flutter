@@ -183,40 +183,40 @@ void main() {
     // drift). The contract: every structural failure must land inside the
     // CustomFlagsException hierarchy so consumers can catch it.
 
-    test('[FlagResponse] throws CustomFlagsException when "flags" key is missing', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" key is missing', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{}),
-        throwsA(isA<CustomFlagsException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws CustomFlagsException when "flags" is null', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is null', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
-        throwsA(isA<CustomFlagsException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws CustomFlagsException when "flags" is a List', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is a List', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{
           'flags': <int>[1, 2, 3],
         }),
-        throwsA(isA<CustomFlagsException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
-    test('[FlagResponse] throws CustomFlagsException when "flags" is a String', () {
+    test('[FlagResponse] throws MalformedResponseException when "flags" is a String', () {
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': 'nope'}),
-        throwsA(isA<CustomFlagsException>()),
+        throwsA(isA<MalformedResponseException>()),
       );
     });
 
     test('[FlagResponse] malformed envelope errors fall under CustomFlagsException', () {
-      // Invariant: whatever concrete type we throw for a structural failure,
-      // it must be a member of the sealed hierarchy. A regression that
-      // re-introduces a raw _TypeError would fail this test.
+      // Invariant: whatever concrete leaf we throw for a structural failure,
+      // it must be a member of the CustomFlagsException hierarchy. A regression
+      // that re-introduces a raw _TypeError would fail this test.
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
         throwsA(isA<CustomFlagsException>()),

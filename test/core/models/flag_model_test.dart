@@ -180,22 +180,33 @@ void main() {
       expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
     });
 
-    test('[Flag.getDouble] throws TypeMismatchException when value is NaN', () {
+    test('[Flag.getDouble] throws InvalidFlagValueException when value is NaN', () {
       // NaN is num, so a naive `is num` check would let it through. Rejecting
       // it here prevents silent propagation — e.g. NaN > 1.0 evaluates false
       // and surfaces far from the source as a render/layout bug.
       const flag = Flag(key: 'font_scale', value: double.nan);
-      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+      expect(flag.getDouble, throwsA(isA<InvalidFlagValueException>()));
     });
 
-    test('[Flag.getDouble] throws TypeMismatchException when value is positive infinity', () {
+    test('[Flag.getDouble] throws InvalidFlagValueException when value is positive infinity', () {
       const flag = Flag(key: 'font_scale', value: double.infinity);
-      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+      expect(flag.getDouble, throwsA(isA<InvalidFlagValueException>()));
     });
 
-    test('[Flag.getDouble] throws TypeMismatchException when value is negative infinity', () {
+    test('[Flag.getDouble] throws InvalidFlagValueException when value is negative infinity', () {
       const flag = Flag(key: 'font_scale', value: double.negativeInfinity);
-      expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
+      expect(flag.getDouble, throwsA(isA<InvalidFlagValueException>()));
+    });
+
+    test('[Flag.getDouble] non-finite exception message includes the not-finite-number explanation', () {
+      const flag = Flag(key: 'font_scale', value: double.nan);
+      expect(
+        flag.getDouble,
+        throwsA(
+          isA<InvalidFlagValueException>()
+              .having((e) => e.message, 'message', contains('not a finite number')),
+        ),
+      );
     });
 
     test('[Flag.getDouble] throws TypeMismatchException when value is null', () {

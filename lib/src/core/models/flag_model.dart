@@ -69,17 +69,24 @@ class Flag extends Equatable {
   /// Returns the flag's value as a [double].
   ///
   /// Accepts any finite number — values stored as `int` or `double`
-  /// are both returned as [double]. Throws [TypeMismatchException]
-  /// if the value is `null` or not a finite number.
+  /// are both returned as [double]. Throws [TypeMismatchException] if
+  /// the value is `null` or not a number; throws
+  /// [InvalidFlagValueException] if the value is a number but not
+  /// finite (`NaN`, `Infinity`, `-Infinity`).
   double getDouble() {
     final v = value;
     if (v == null) {
       throw TypeMismatchException(flagKey: key, expectedType: double, actualType: Null);
     }
-    if (v is num && v.isFinite) {
-      return v.toDouble();
+    if (v is! num) {
+      throw TypeMismatchException(flagKey: key, expectedType: double, actualType: v.runtimeType);
     }
-    throw TypeMismatchException(flagKey: key, expectedType: double, actualType: v.runtimeType);
+    if (!v.isFinite) {
+      throw InvalidFlagValueException(
+        message: 'Flag "$key" has value $v, which is not a finite number',
+      );
+    }
+    return v.toDouble();
   }
 
   /// Returns the flag's value as a JSON object (`Map<String, dynamic>`).

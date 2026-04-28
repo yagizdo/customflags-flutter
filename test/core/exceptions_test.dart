@@ -2,65 +2,6 @@ import 'package:customflags/customflags.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('NotInitializedException', () {
-    test('[NotInitializedException] uses the default initialization message', () {
-      final exception = NotInitializedException();
-      expect(exception.message, 'CustomFlags is not initialized, please call CustomFlags.init() first');
-    });
-
-    test('[NotInitializedException] toString includes runtime type and message', () {
-      final exception = NotInitializedException();
-      expect(exception.toString(), contains('NotInitializedException'));
-      expect(exception.toString(), contains('not initialized'));
-    });
-  });
-
-  group('NetworkException', () {
-    test('[NetworkException] uses default message when none provided', () {
-      final exception = NetworkException();
-      expect(exception.message, 'Network exception');
-    });
-
-    test('[NetworkException] uses provided message when specified', () {
-      final exception = NetworkException(message: 'Timeout');
-      expect(exception.message, 'Timeout');
-    });
-
-    test('[NetworkException] toString includes runtime type', () {
-      final exception = NetworkException();
-      expect(exception.toString(), contains('NetworkException'));
-    });
-  });
-
-  group('ServerException', () {
-    test('[ServerException] uses default message when none provided', () {
-      final exception = ServerException();
-      expect(exception.message, 'Server exception');
-    });
-
-    test('[ServerException] uses provided message when specified', () {
-      final exception = ServerException(message: 'Service down');
-      expect(exception.message, 'Service down');
-    });
-
-    test('[ServerException] toString includes runtime type', () {
-      final exception = ServerException();
-      expect(exception.toString(), contains('ServerException'));
-    });
-  });
-
-  group('UnknownException', () {
-    test('[UnknownException] uses the default unknown error message', () {
-      final exception = UnknownException();
-      expect(exception.message, 'Unknown exception');
-    });
-
-    test('[UnknownException] toString includes runtime type', () {
-      final exception = UnknownException();
-      expect(exception.toString(), contains('UnknownException'));
-    });
-  });
-
   group('ConfigurationException', () {
     test('[ConfigurationException] stores the provided message', () {
       final exception = ConfigurationException(message: 'Missing API key');
@@ -72,11 +13,16 @@ void main() {
       expect(exception.toString(), contains('ConfigurationException'));
       expect(exception.toString(), contains('Invalid base URL'));
     });
+
+    test('[ConfigurationException] is a CustomFlagsException', () {
+      final exception = ConfigurationException(message: 'bad config');
+      expect(exception, isA<CustomFlagsException>());
+    });
   });
 
-  group('ApiClientException', () {
-    test('[ApiClientException] stores statusCode, body and message', () {
-      final exception = ApiClientException(
+  group('CustomFlagApiException', () {
+    test('[CustomFlagApiException] stores statusCode, body and message', () {
+      final exception = CustomFlagApiException(
         statusCode: 404,
         body: '{"error": "not found"}',
         message: 'Not found',
@@ -86,33 +32,71 @@ void main() {
       expect(exception.message, 'Not found');
     });
 
-    test('[ApiClientException] allows null body', () {
-      final exception = ApiClientException(
-        statusCode: 400,
-        message: 'Bad request',
-      );
+    test('[CustomFlagApiException] allows null statusCode and body for connection errors', () {
+      final exception = CustomFlagApiException(message: 'Connection timeout');
+      expect(exception.statusCode, isNull);
       expect(exception.body, isNull);
     });
 
-    test('[ApiClientException] toString includes statusCode and body', () {
-      final exception = ApiClientException(
+    test('[CustomFlagApiException] toString includes statusCode and message but not body', () {
+      final exception = CustomFlagApiException(
         statusCode: 422,
         body: 'validation failed',
         message: 'Unprocessable',
       );
       final str = exception.toString();
-      expect(str, contains('ApiClientException'));
+      expect(str, contains('CustomFlagApiException'));
       expect(str, contains('422'));
-      expect(str, contains('validation failed'));
+      expect(str, contains('Unprocessable'));
+      expect(str, isNot(contains('validation failed')));
     });
 
-    test('[ApiClientException] instances with identical fields are equal', () {
-      final a = ApiClientException(statusCode: 400, body: 'x', message: 'err');
-      final b = ApiClientException(statusCode: 400, body: 'x', message: 'err');
-      final c = ApiClientException(statusCode: 500, body: 'x', message: 'err');
+    test('[CustomFlagApiException] body sanitization replaces control characters with spaces', () {
+      final exception = CustomFlagApiException(
+        statusCode: 500,
+        body: 'line1\nline2\rline3\x00null',
+        message: 'err',
+      );
+      expect(exception.body, 'line1 line2 line3 null');
+    });
+
+    test('[CustomFlagApiException] body is preserved as-is when within the size limit', () {
+      final exception = CustomFlagApiException(
+        statusCode: 400,
+        body: 'short body',
+        message: 'err',
+      );
+      expect(exception.body, 'short body');
+    });
+
+    test('[CustomFlagApiException] body is truncated when longer than 512 characters', () {
+      final long = 'a' * 600;
+      final exception = CustomFlagApiException(
+        statusCode: 500,
+        body: long,
+        message: 'err',
+      );
+      expect(exception.body, startsWith('a' * 512));
+      expect(exception.body, contains('truncated 88 chars'));
+    });
+
+    test('[CustomFlagApiException] body remains null when none provided', () {
+      final exception = CustomFlagApiException(message: 'connection timeout');
+      expect(exception.body, isNull);
+    });
+
+    test('[CustomFlagApiException] instances with identical fields are equal', () {
+      final a = CustomFlagApiException(statusCode: 400, body: 'x', message: 'err');
+      final b = CustomFlagApiException(statusCode: 400, body: 'x', message: 'err');
+      final c = CustomFlagApiException(statusCode: 500, body: 'x', message: 'err');
 
       expect(a, equals(b));
       expect(a, isNot(equals(c)));
+    });
+
+    test('[CustomFlagApiException] is a CustomFlagsException', () {
+      final exception = CustomFlagApiException(message: 'server error');
+      expect(exception, isA<CustomFlagsException>());
     });
   });
 
@@ -158,75 +142,59 @@ void main() {
       expect(a, equals(b));
       expect(a, isNot(equals(c)));
     });
-  });
 
-  group('NullFlagValueException', () {
-    test('[NullFlagValueException] builds message from flagKey', () {
-      final exception = NullFlagValueException(flagKey: 'dark_mode');
-      expect(exception.message, 'Flag "dark_mode" has no value (null)');
+    test('[TypeMismatchException] reports Null as actualType for null values', () {
+      final exception = TypeMismatchException(
+        flagKey: 'dark_mode',
+        expectedType: bool,
+        actualType: Null,
+      );
+      expect(exception.message, 'Flag "dark_mode" has type Null, but expected bool');
     });
 
-    test('[NullFlagValueException] toString includes runtime type and flagKey', () {
-      final exception = NullFlagValueException(flagKey: 'theme_color');
-      expect(exception.toString(), contains('NullFlagValueException'));
-      expect(exception.toString(), contains('theme_color'));
-    });
-
-    test('[NullFlagValueException] instances with identical flagKey are equal', () {
-      final a = NullFlagValueException(flagKey: 'dark_mode');
-      final b = NullFlagValueException(flagKey: 'dark_mode');
-      final c = NullFlagValueException(flagKey: 'theme_color');
-
-      expect(a, equals(b));
-      expect(a, isNot(equals(c)));
+    test('[TypeMismatchException] is a CustomFlagsException', () {
+      final exception = TypeMismatchException(
+        flagKey: 'k',
+        expectedType: bool,
+        actualType: String,
+      );
+      expect(exception, isA<CustomFlagsException>());
     });
   });
 
   group('MalformedResponseException', () {
-    test('[MalformedResponseException] builds message from field, expected and actual types', () {
-      final exception = MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: List<int>,
-      );
-      expect(
-        exception.message,
-        'Malformed response: expected "flags" to be Map<String, dynamic>, got List<int>',
-      );
+    test('[MalformedResponseException] stores the provided message', () {
+      final exception = MalformedResponseException(message: 'flags missing');
+      expect(exception.message, 'flags missing');
     });
 
-    test('[MalformedResponseException] toString includes runtime type and field name', () {
-      final exception = MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: String,
-      );
-      final str = exception.toString();
-      expect(str, contains('MalformedResponseException'));
-      expect(str, contains('flags'));
-      expect(str, contains('Map<String, dynamic>'));
-      expect(str, contains('String'));
+    test('[MalformedResponseException] is a CustomFlagsException', () {
+      final exception = MalformedResponseException(message: 'x');
+      expect(exception, isA<CustomFlagsException>());
     });
 
-    test('[MalformedResponseException] instances with identical fields are equal', () {
-      final a = MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: List<int>,
-      );
-      final b = MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: List<int>,
-      );
-      final c = MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: String,
-      );
+    test('[MalformedResponseException] toString includes runtime type and message', () {
+      final exception = MalformedResponseException(message: 'bad envelope');
+      expect(exception.toString(), contains('MalformedResponseException'));
+      expect(exception.toString(), contains('bad envelope'));
+    });
+  });
 
-      expect(a, equals(b));
-      expect(a, isNot(equals(c)));
+  group('InvalidFlagValueException', () {
+    test('[InvalidFlagValueException] stores the provided message', () {
+      final exception = InvalidFlagValueException(message: 'value is NaN');
+      expect(exception.message, 'value is NaN');
+    });
+
+    test('[InvalidFlagValueException] is a CustomFlagsException', () {
+      final exception = InvalidFlagValueException(message: 'x');
+      expect(exception, isA<CustomFlagsException>());
+    });
+
+    test('[InvalidFlagValueException] toString includes runtime type and message', () {
+      final exception = InvalidFlagValueException(message: 'value out of range');
+      expect(exception.toString(), contains('InvalidFlagValueException'));
+      expect(exception.toString(), contains('value out of range'));
     });
   });
 }

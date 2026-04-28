@@ -20,9 +20,8 @@ class FlagResponse extends Equatable {
     final raw = json['flags'];
     if (raw is! Map<String, dynamic>) {
       throw MalformedResponseException(
-        field: 'flags',
-        expectedType: Map<String, dynamic>,
-        actualType: raw.runtimeType,
+        message:
+            'Malformed response: expected "flags" to be Map<String, dynamic>, got ${raw.runtimeType}',
       );
     }
     return FlagResponse(

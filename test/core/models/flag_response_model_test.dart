@@ -181,7 +181,7 @@ void main() {
     // 200 with a body that doesn't match the expected shape (upstream proxy
     // stripping nulls, config service sending "no flags defined", schema
     // drift). The contract: every structural failure must land inside the
-    // sealed CustomFlagsException hierarchy so consumers can catch it.
+    // CustomFlagsException hierarchy so consumers can catch it.
 
     test('[FlagResponse] throws MalformedResponseException when "flags" key is missing', () {
       expect(
@@ -214,9 +214,9 @@ void main() {
     });
 
     test('[FlagResponse] malformed envelope errors fall under CustomFlagsException', () {
-      // Invariant: whatever concrete type we throw for a structural failure,
-      // it must be a member of the sealed hierarchy. A regression that
-      // re-introduces a raw _TypeError would fail this test.
+      // Invariant: whatever concrete leaf we throw for a structural failure,
+      // it must be a member of the CustomFlagsException hierarchy. A regression
+      // that re-introduces a raw _TypeError would fail this test.
       expect(
         () => FlagResponse.fromJson(const <String, dynamic>{'flags': null}),
         throwsA(isA<CustomFlagsException>()),

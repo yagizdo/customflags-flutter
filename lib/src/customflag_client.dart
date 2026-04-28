@@ -1,3 +1,6 @@
+import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
+
 import 'api_client.dart';
 import 'core/exceptions.dart';
 import 'core/models/flag_model.dart';
@@ -27,13 +30,24 @@ class CustomFlagClient {
   /// The [CustomFlagConfig] this client was constructed with.
   ///
   /// Exposed for inspection — for example, to read
-  /// [CustomFlagConfig.apiKey] or [CustomFlagConfig.connectTimeout] in
-  /// logs or diagnostics. Immutable once the client is built; the
-  /// underlying HTTP client is configured eagerly in the constructor.
+  /// [CustomFlagConfig.connectTimeout] in diagnostics. Note that
+  /// [CustomFlagConfig.toString] redacts [CustomFlagConfig.apiKey];
+  /// to access the raw key, read the field directly.
+  /// Immutable once the client is built; the underlying HTTP client is
+  /// configured eagerly in the constructor.
   final CustomFlagConfig config;
 
   late final ApiClient _api;
   Identity? _identity;
+
+  /// Cancellation handle for the most-recent fetch.
+  ///
+  /// Tracked so [setIdentity] can cancel an in-flight request against
+  /// the previous identity before swapping in the new one — otherwise
+  /// a slow response for user A could land after the app has switched
+  /// to user B. Cancelling an already-completed token is a no-op in
+  /// Dio, so this field is not cleared when a fetch finishes.
+  CancelToken? _pendingRequestToken;
 
   /// Creates a client that talks to the CustomFlags backend using [config].
   ///
@@ -41,15 +55,23 @@ class CustomFlagClient {
   /// so an invalid one (empty API key, non-positive timeout) throws
   /// [ConfigurationException] from the [CustomFlagConfig] constructor
   /// before this constructor returns.
-  CustomFlagClient({required this.config}) {
-    _api = ApiClient(config: config);
+  CustomFlagClient({
+    required this.config,
+    @visibleForTesting ApiClient? apiClient,
+  }) {
+    _api = apiClient ?? ApiClient(config: config);
   }
 
   /// Sets the [Identity] used for subsequent flag fetches.
   ///
   /// Must be called before [fetchAllFlags]; otherwise that call throws
   /// [ConfigurationException]. Calling this again replaces the previous
-  /// identity — the next [fetchAllFlags] uses the new [identifier][Identity.identifier].
+  /// identity — the next [fetchAllFlags] uses the new
+  /// [identifier][Identity.identifier].
+  ///
+  /// Throws [ConfigurationException] if [Identity.identifier] is empty —
+  /// an empty identifier would be silently dropped from the request URL
+  /// and result in an unscoped fetch.
   ///
   /// ```dart
   /// client.setIdentity(Identity(identifier: 'user_42'));
@@ -57,7 +79,14 @@ class CustomFlagClient {
   /// client.setIdentity(Identity(identifier: 'user_99'));
   /// ```
   void setIdentity(Identity identity) {
+    if (identity.identifier.isEmpty) {
+      throw ConfigurationException(
+        message: 'Identity.identifier must not be empty',
+      );
+    }
     _identity = identity;
+    _pendingRequestToken?.cancel('identity changed');
+    _pendingRequestToken = null;
   }
 
   /// Fetches every flag assigned to the current [Identity] from the
@@ -73,11 +102,14 @@ class CustomFlagClient {
   ///
   /// Throws [ConfigurationException] if [setIdentity] has not been called
   /// yet. Throws [CustomFlagApiException] on network failures (no
-  /// connection, timeout), HTTP errors (4xx, 5xx), or malformed
-  /// responses where the backend did not return a JSON object.
+  /// connection, timeout) or HTTP errors (4xx, 5xx). Throws
+  /// [MalformedResponseException] when the backend response shape is
+  /// invalid (missing `flags` key, `flags` is not a JSON object, etc.).
   Future<List<Flag>> fetchAllFlags() async {
     final identity = _checkIdentity();
-    return await _api.fetchAllFlags(identity: identity);
+    final token = CancelToken();
+    _pendingRequestToken = token;
+    return _api.fetchAllFlags(identity: identity, cancelToken: token);
   }
 
   /// Fetches the single [Flag] identified by [featureKey] for the current
@@ -95,14 +127,21 @@ class CustomFlagClient {
   /// Throws [ArgumentError] if [featureKey] is empty. Throws
   /// [ConfigurationException] if [setIdentity] has not been called yet.
   /// Throws [CustomFlagApiException] on network failures (no connection,
-  /// timeout), HTTP errors (4xx, 5xx), or malformed responses where the
-  /// backend did not return a JSON object.
+  /// timeout) or HTTP errors (4xx, 5xx). Throws
+  /// [MalformedResponseException] when the backend response shape is
+  /// invalid (missing `flags` key, `flags` is not a JSON object, etc.).
   Future<Flag> getFlag(String featureKey) async {
     final identity = _checkIdentity();
     if (featureKey.isEmpty) {
       throw ArgumentError.value(featureKey, 'featureKey', 'must not be empty');
     }
-    return await _api.fetchFlag(identity: identity, featureKey: featureKey);
+    final token = CancelToken();
+    _pendingRequestToken = token;
+    return _api.fetchFlag(
+      identity: identity,
+      featureKey: featureKey,
+      cancelToken: token,
+    );
   }
 
   Identity _checkIdentity() {

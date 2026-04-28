@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 import 'constants/api_endpoints.dart';
 import 'core/exceptions.dart';
 import 'core/models/flag_model.dart';
@@ -16,26 +16,38 @@ class ApiClient {
   static const String _acceptHeader = 'Accept';
   static const String _applicationJson = 'application/json';
 
-  ApiClient({required this.config, @visibleForTesting String? baseUrl}) {
-    _dio = _buildDioClient(baseUrl);
+  ApiClient({
+    required this.config,
+    @visibleForTesting String? baseUrl,
+    @visibleForTesting Dio? dio,
+  }) {
+    _dio = dio ?? _buildDioClient(baseUrl);
   }
 
   Dio _buildDioClient(String? baseUrl) {
-    final dio = Dio(config.baseOptions)
+    final dio = Dio(BaseOptions(
+      connectTimeout: config.connectTimeout,
+      receiveTimeout: config.receiveTimeout,
+      sendTimeout: kIsWeb ? null : config.sendTimeout,
+    ))
       ..options.baseUrl = baseUrl ?? kCustomFlagBaseUrl
       ..options.headers[_authHeader] = config.apiKey
       ..options.headers[_acceptHeader] = _applicationJson
-      ..options.followRedirects = true
-      ..options.maxRedirects = 5;
+      ..options.followRedirects = false
+      ..options.maxRedirects = 0;
 
     return dio;
   }
 
-  Future<List<Flag>> fetchAllFlags({required Identity identity}) async {
+  Future<List<Flag>> fetchAllFlags({
+    required Identity identity,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final response = await _dio.get(
         kCustomFlagFlagsEndpoint,
         queryParameters: {kCustomFlagFlagsUserQueryParam: identity.identifier},
+        cancelToken: cancelToken,
       );
 
       final data = response.data;
@@ -55,11 +67,16 @@ class ApiClient {
     }
   }
 
-  Future<Flag> fetchFlag({required Identity identity, required String featureKey}) async {
+  Future<Flag> fetchFlag({
+    required Identity identity,
+    required String featureKey,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final response = await _dio.get(
         kCustomFlagSingleFlagEndpoint(featureKey),
         queryParameters: {kCustomFlagFlagsUserQueryParam: identity.identifier},
+        cancelToken: cancelToken,
       );
 
       final data = response.data;
@@ -75,8 +92,8 @@ class ApiClient {
       if (flags.length != 1) {
         throw CustomFlagApiException(
           statusCode: response.statusCode,
-          body: data.toString(),
-          message: 'Expected exactly 1 flag for "$featureKey", got ${flags.length}',
+          message: 'Expected exactly 1 flag for "$featureKey", got ${flags.length} '
+              '(keys: ${flags.map((f) => f.key).join(", ")})',
         );
       }
 

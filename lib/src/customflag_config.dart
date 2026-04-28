@@ -1,6 +1,4 @@
-import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
 
 import 'core/exceptions.dart';
 
@@ -77,11 +75,12 @@ final class CustomFlagConfig extends Equatable {
     }
   }
 
-  BaseOptions get baseOptions => BaseOptions(
-        connectTimeout: connectTimeout,
-        receiveTimeout: receiveTimeout,
-        sendTimeout: kIsWeb ? null : sendTimeout,
-      );
+  @override
+  String toString() =>
+      'CustomFlagConfig(apiKey: ${apiKey.isEmpty ? "<empty>" : "<redacted>"}, '
+      'connectTimeout: $connectTimeout, '
+      'receiveTimeout: $receiveTimeout, '
+      'sendTimeout: $sendTimeout)';
 
   @override
   List<Object?> get props => [apiKey, connectTimeout, receiveTimeout, sendTimeout];

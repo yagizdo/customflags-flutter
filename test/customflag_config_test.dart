@@ -37,6 +37,24 @@ void main() {
       expect(CustomFlagConfig.defaultReceiveTimeout, const Duration(seconds: 20));
     });
 
+    test('[CustomFlagConfig] uses default sendTimeout when none provided', () {
+      final config = CustomFlagConfig(apiKey: 'test_key');
+      expect(config.sendTimeout, CustomFlagConfig.defaultSendTimeout);
+    });
+
+    test('[CustomFlagConfig] defaultSendTimeout is 20 seconds', () {
+      expect(CustomFlagConfig.defaultSendTimeout, const Duration(seconds: 20));
+    });
+
+    test('[CustomFlagConfig] uses provided sendTimeout overriding the default', () {
+      final config = CustomFlagConfig(
+        apiKey: 'test_key',
+        sendTimeout: const Duration(seconds: 30),
+      );
+      expect(config.sendTimeout, const Duration(seconds: 30));
+      expect(config.connectTimeout, CustomFlagConfig.defaultConnectTimeout);
+    });
+
     test('[CustomFlagConfig] uses provided connectTimeout overriding the default', () {
       final config = CustomFlagConfig(
         apiKey: 'test_key',
@@ -106,6 +124,26 @@ void main() {
       );
     });
 
+    test('[CustomFlagConfig] throws ConfigurationException when sendTimeout is zero', () {
+      expect(
+        () => CustomFlagConfig(
+          apiKey: 'test_key',
+          sendTimeout: Duration.zero,
+        ),
+        throwsA(isA<ConfigurationException>()),
+      );
+    });
+
+    test('[CustomFlagConfig] throws ConfigurationException when sendTimeout is negative', () {
+      expect(
+        () => CustomFlagConfig(
+          apiKey: 'test_key',
+          sendTimeout: const Duration(seconds: -1),
+        ),
+        throwsA(isA<ConfigurationException>()),
+      );
+    });
+
     test('[CustomFlagConfig] empty-apiKey exception message points to the dashboard', () {
       // The message is the only channel a developer sees at construction
       // failure — if this drifts, the dashboard link silently disappears.
@@ -167,6 +205,37 @@ void main() {
       );
 
       expect(a, isNot(equals(b)));
+    });
+
+    test('[CustomFlagConfig] instances with different sendTimeout are not equal', () {
+      final a = CustomFlagConfig(
+        apiKey: 'key',
+        sendTimeout: const Duration(seconds: 20),
+      );
+      final b = CustomFlagConfig(
+        apiKey: 'key',
+        sendTimeout: const Duration(seconds: 25),
+      );
+
+      expect(a, isNot(equals(b)));
+    });
+  });
+
+  group('CustomFlagConfig toString', () {
+    test('[CustomFlagConfig] toString redacts apiKey when non-empty', () {
+      final config = CustomFlagConfig(apiKey: 'sk_live_secret');
+      expect(config.toString(), contains('<redacted>'));
+      expect(config.toString(), isNot(contains('sk_live_secret')));
+    });
+
+    test('[CustomFlagConfig] toString includes timeouts', () {
+      final config = CustomFlagConfig(
+        apiKey: 'k',
+        connectTimeout: const Duration(seconds: 7),
+        receiveTimeout: const Duration(seconds: 14),
+      );
+      expect(config.toString(), contains('connectTimeout: 0:00:07'));
+      expect(config.toString(), contains('receiveTimeout: 0:00:14'));
     });
   });
 }

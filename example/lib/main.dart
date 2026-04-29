@@ -24,11 +24,12 @@ void main() {
   ));
 }
 
-/// Single demo page. Three flag-driven sections:
+/// Single demo page. Four flag-driven sections:
 ///
 /// * page [Theme], driven by `theme_variant` (string)
 /// * a banner that swaps default ↔ promo, driven by `show_promo_banner` (bool)
 /// * an announcement card, driven by `home_announcement` (JSON)
+/// * a free-trial tile, driven by `free_trial_days` (int)
 ///
 /// Each section always renders something — the page is never empty.
 /// That mirrors how a real app uses feature flags: ship a baseline
@@ -96,6 +97,15 @@ class _HomePageState extends State<HomePage> {
                     return AnnouncementCard(announcement: announcement);
                   },
                 ),
+                FlagBuilder(
+                  client: widget.client,
+                  featureKey: 'free_trial_days',
+                  refreshCount: _refreshCount,
+                  builder: (context, flag) {
+                    final days = flag?.getInt(fallback: 0) ?? 0;
+                    return _FreeTrialTile(days: days);
+                  },
+                ),
                 _ThemeFooter(variant: variant),
               ],
             ),
@@ -144,6 +154,44 @@ class _Banner extends StatelessWidget {
           Icon(icon, color: fg),
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: TextStyle(color: fg))),
+        ],
+      ),
+    );
+  }
+}
+
+class _FreeTrialTile extends StatelessWidget {
+  const _FreeTrialTile({required this.days});
+
+  final int days;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isActive = days > 0;
+    final icon = isActive ? Icons.timer : Icons.timer_off;
+    final text = isActive
+        ? 'Free trial: $days day${days == 1 ? '' : 's'} remaining.'
+        : 'No free trial active — set free_trial_days to a positive int '
+            'on the backend to enable it.';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: scheme.onTertiaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: scheme.onTertiaryContainer),
+            ),
+          ),
         ],
       ),
     );

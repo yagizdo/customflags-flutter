@@ -110,6 +110,48 @@ void main() {
         ),
       );
     });
+
+    test('[Flag.getBool] returns fallback when value is null and fallback is provided', () {
+      const flag = Flag(key: 'dark_mode', value: null);
+      expect(flag.getBool(fallback: false), false);
+    });
+
+    test('[Flag.getBool] returns fallback when value is the wrong type and fallback is provided', () {
+      const flag = Flag(key: 'dark_mode', value: 'true');
+      expect(flag.getBool(fallback: false), false);
+    });
+
+    test('[Flag.getBool] returns the typed value when fallback is provided but value is valid', () {
+      const flag = Flag(key: 'dark_mode', value: true);
+      expect(flag.getBool(fallback: false), true);
+    });
+
+    test('[Flag.getBool] throws TypeMismatchException when fallback is explicitly null', () {
+      const flag = Flag(key: 'dark_mode', value: null);
+      expect(
+        () => flag.getBool(fallback: null),
+        throwsA(isA<TypeMismatchException>()),
+      );
+    });
+
+    test('[Flag.getBool] returns the provided fallback for any non-bool value (invariant)', () {
+      // Invariant: for any non-null fallback X, getBool(fallback: X) returns X
+      // whenever value is null or non-bool. The assertion is derived from the
+      // input (the fallback the caller passed in), not from a magic constant.
+      for (final invalid in <Object?>[null, 'true', 0, 1.5, <int>[], <String, int>{}]) {
+        final flag = Flag(key: 'k', value: invalid);
+        expect(
+          flag.getBool(fallback: true),
+          true,
+          reason: 'getBool should return fallback=true for value=$invalid',
+        );
+        expect(
+          flag.getBool(fallback: false),
+          false,
+          reason: 'getBool should return fallback=false for value=$invalid',
+        );
+      }
+    });
   });
 
   group('Flag.getString', () {
@@ -132,6 +174,40 @@ void main() {
       const flag = Flag(key: 'theme_color', value: null);
       expect(flag.getString, throwsA(isA<TypeMismatchException>()));
     });
+
+    test('[Flag.getString] returns fallback when value is null and fallback is provided', () {
+      const flag = Flag(key: 'theme_color', value: null);
+      expect(flag.getString(fallback: 'default'), 'default');
+    });
+
+    test('[Flag.getString] returns fallback when value is the wrong type and fallback is provided', () {
+      const flag = Flag(key: 'theme_color', value: 42);
+      expect(flag.getString(fallback: 'default'), 'default');
+    });
+
+    test('[Flag.getString] returns the typed value when fallback is provided but value is valid', () {
+      const flag = Flag(key: 'theme_color', value: 'blue');
+      expect(flag.getString(fallback: 'default'), 'blue');
+    });
+
+    test('[Flag.getString] throws TypeMismatchException when fallback is explicitly null', () {
+      const flag = Flag(key: 'theme_color', value: null);
+      expect(
+        () => flag.getString(fallback: null),
+        throwsA(isA<TypeMismatchException>()),
+      );
+    });
+
+    test('[Flag.getString] returns the provided fallback for any non-String value (invariant)', () {
+      for (final invalid in <Object?>[null, true, 0, 1.5, <int>[], <String, int>{}]) {
+        final flag = Flag(key: 'k', value: invalid);
+        expect(
+          flag.getString(fallback: 'X'),
+          'X',
+          reason: 'getString should return fallback="X" for value=$invalid',
+        );
+      }
+    });
   });
 
   group('Flag.getInt', () {
@@ -153,6 +229,47 @@ void main() {
     test('[Flag.getInt] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'max_retries', value: null);
       expect(flag.getInt, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getInt] returns fallback when value is null and fallback is provided', () {
+      const flag = Flag(key: 'max_retries', value: null);
+      expect(flag.getInt(fallback: 0), 0);
+    });
+
+    test('[Flag.getInt] returns fallback when value is the wrong type and fallback is provided', () {
+      const flag = Flag(key: 'max_retries', value: '3');
+      expect(flag.getInt(fallback: 0), 0);
+    });
+
+    test('[Flag.getInt] returns fallback when value is a double and fallback is provided', () {
+      // Doubles are not silently truncated even with fallback — the strict path
+      // throws TypeMismatchException, and the fallback path returns the fallback.
+      const flag = Flag(key: 'max_retries', value: 3.7);
+      expect(flag.getInt(fallback: 5), 5);
+    });
+
+    test('[Flag.getInt] returns the typed value when fallback is provided but value is valid', () {
+      const flag = Flag(key: 'max_retries', value: 3);
+      expect(flag.getInt(fallback: 0), 3);
+    });
+
+    test('[Flag.getInt] throws TypeMismatchException when fallback is explicitly null', () {
+      const flag = Flag(key: 'max_retries', value: null);
+      expect(
+        () => flag.getInt(fallback: null),
+        throwsA(isA<TypeMismatchException>()),
+      );
+    });
+
+    test('[Flag.getInt] returns the provided fallback for any non-int value (invariant)', () {
+      for (final invalid in <Object?>[null, true, '3', 3.7, <int>[], <String, int>{}]) {
+        final flag = Flag(key: 'k', value: invalid);
+        expect(
+          flag.getInt(fallback: 99),
+          99,
+          reason: 'getInt should return fallback=99 for value=$invalid',
+        );
+      }
     });
   });
 
@@ -213,6 +330,76 @@ void main() {
       const flag = Flag(key: 'font_scale', value: null);
       expect(flag.getDouble, throwsA(isA<TypeMismatchException>()));
     });
+
+    test('[Flag.getDouble] returns fallback when value is null and fallback is provided', () {
+      const flag = Flag(key: 'font_scale', value: null);
+      expect(flag.getDouble(fallback: 1.0), 1.0);
+    });
+
+    test('[Flag.getDouble] returns fallback when value is the wrong type and fallback is provided', () {
+      const flag = Flag(key: 'font_scale', value: 'big');
+      expect(flag.getDouble(fallback: 1.0), 1.0);
+    });
+
+    test('[Flag.getDouble] returns fallback when value is NaN and fallback is provided', () {
+      const flag = Flag(key: 'font_scale', value: double.nan);
+      expect(flag.getDouble(fallback: 1.0), 1.0);
+    });
+
+    test('[Flag.getDouble] returns fallback when value is positive infinity and fallback is provided', () {
+      const flag = Flag(key: 'font_scale', value: double.infinity);
+      expect(flag.getDouble(fallback: 1.0), 1.0);
+    });
+
+    test('[Flag.getDouble] returns the typed value when fallback is provided but value is valid', () {
+      const flag = Flag(key: 'font_scale', value: 1.25);
+      expect(flag.getDouble(fallback: 0.5), 1.25);
+    });
+
+    test('[Flag.getDouble] widens int to double when fallback is provided', () {
+      // Numeric widening (int → double) is part of the strict happy path; the
+      // fallback should not preempt it.
+      const flag = Flag(key: 'font_scale', value: 2);
+      expect(flag.getDouble(fallback: 0.5), 2.0);
+    });
+
+    test('[Flag.getDouble] throws TypeMismatchException when fallback is explicitly null and value is null', () {
+      const flag = Flag(key: 'font_scale', value: null);
+      expect(
+        () => flag.getDouble(fallback: null),
+        throwsA(isA<TypeMismatchException>()),
+      );
+    });
+
+    test('[Flag.getDouble] throws InvalidFlagValueException when fallback is explicitly null and value is NaN', () {
+      // The strict path for non-finite numbers must remain reachable so callers
+      // who omit fallback (or pass null) still see the misconfig signal.
+      const flag = Flag(key: 'font_scale', value: double.nan);
+      expect(
+        () => flag.getDouble(fallback: null),
+        throwsA(isA<InvalidFlagValueException>()),
+      );
+    });
+
+    test('[Flag.getDouble] returns the provided fallback for any non-finite or non-num value (invariant)', () {
+      for (final invalid in <Object?>[
+        null,
+        true,
+        '1.5',
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+        <int>[],
+        <String, int>{},
+      ]) {
+        final flag = Flag(key: 'k', value: invalid);
+        expect(
+          flag.getDouble(fallback: 7.5),
+          7.5,
+          reason: 'getDouble should return fallback=7.5 for value=$invalid',
+        );
+      }
+    });
   });
 
   group('Flag.getJson', () {
@@ -238,6 +425,53 @@ void main() {
     test('[Flag.getJson] throws TypeMismatchException when value is null', () {
       const flag = Flag(key: 'ui_config', value: null);
       expect(flag.getJson, throwsA(isA<TypeMismatchException>()));
+    });
+
+    test('[Flag.getJson] returns fallback when value is null and fallback is provided', () {
+      const flag = Flag(key: 'ui_config', value: null);
+      expect(
+        flag.getJson(fallback: const <String, dynamic>{'theme': 'light'}),
+        <String, dynamic>{'theme': 'light'},
+      );
+    });
+
+    test('[Flag.getJson] returns fallback when value is the wrong type and fallback is provided', () {
+      const flag = Flag(key: 'ui_config', value: '{}');
+      expect(
+        flag.getJson(fallback: const <String, dynamic>{'theme': 'light'}),
+        <String, dynamic>{'theme': 'light'},
+      );
+    });
+
+    test('[Flag.getJson] returns the typed value when fallback is provided but value is valid', () {
+      const flag = Flag(
+        key: 'ui_config',
+        value: <String, dynamic>{'color': 'blue'},
+      );
+      expect(
+        flag.getJson(fallback: const <String, dynamic>{'theme': 'light'}),
+        <String, dynamic>{'color': 'blue'},
+      );
+    });
+
+    test('[Flag.getJson] throws TypeMismatchException when fallback is explicitly null', () {
+      const flag = Flag(key: 'ui_config', value: null);
+      expect(
+        () => flag.getJson(fallback: null),
+        throwsA(isA<TypeMismatchException>()),
+      );
+    });
+
+    test('[Flag.getJson] returns the provided fallback for any non-Map value (invariant)', () {
+      const fallback = <String, dynamic>{'k': 'v'};
+      for (final invalid in <Object?>[null, true, 'json', 42, 1.5, <int>[1, 2]]) {
+        final flag = Flag(key: 'k', value: invalid);
+        expect(
+          flag.getJson(fallback: fallback),
+          fallback,
+          reason: 'getJson should return fallback for value=$invalid',
+        );
+      }
     });
   });
 }

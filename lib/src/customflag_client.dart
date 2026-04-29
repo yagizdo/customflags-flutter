@@ -112,24 +112,32 @@ class CustomFlagClient {
     return _api.fetchAllFlags(identity: identity, cancelToken: token);
   }
 
-  /// Fetches the single [Flag] identified by [featureKey] for the current
+  /// Fetches the [Flag] identified by [featureKey] for the current
   /// [Identity] from the CustomFlags backend.
   ///
-  /// Read the value from the returned flag with the typed getter that
-  /// matches its stored type — [Flag.getBool], [Flag.getString],
-  /// [Flag.getInt], [Flag.getDouble], or [Flag.getJson]:
+  /// When the backend response omits [featureKey] (the wire convention is
+  /// "absent = off" — only `true` or set values are returned), this method
+  /// returns a synthetic `Flag(key: featureKey, value: null)` rather than
+  /// throwing. Combined with the optional `fallback` parameter on each
+  /// typed getter on [Flag], this lets callers read flag values in a
+  /// single chained call:
   ///
   /// ```dart
-  /// final flag = await client.getFlag('dark_mode');
-  /// final isDark = flag.getBool();
+  /// final isDark = (await client.getFlag('dark_mode')).getBool(fallback: false);
   /// ```
+  ///
+  /// The strict no-fallback variant is still available — calling
+  /// [Flag.getBool] (or any other typed getter) without a `fallback`
+  /// argument throws [TypeMismatchException] on null or wrong-type values,
+  /// preserving misconfiguration signals.
   ///
   /// Throws [ArgumentError] if [featureKey] is empty. Throws
   /// [ConfigurationException] if [setIdentity] has not been called yet.
   /// Throws [CustomFlagApiException] on network failures (no connection,
   /// timeout) or HTTP errors (4xx, 5xx). Throws
   /// [MalformedResponseException] when the backend response shape is
-  /// invalid (missing `flags` key, `flags` is not a JSON object, etc.).
+  /// invalid (missing `flags` key, `flags` is not a JSON object, or — for
+  /// a single-flag query — the response contains more than one flag).
   Future<Flag> getFlag(String featureKey) async {
     final identity = _checkIdentity();
     if (featureKey.isEmpty) {

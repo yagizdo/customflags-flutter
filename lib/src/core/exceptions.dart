@@ -55,8 +55,12 @@ final class CustomFlagApiException extends CustomFlagsException {
   /// (CR, LF, NUL, etc.) replaced by spaces to prevent log injection,
   /// and truncated to [_maxBodyChars] characters when longer.
   ///
-  /// Not included in [toString] by default — access this field
-  /// explicitly when you want to display or log the response detail.
+  /// Included in [toString] when non-null so the server's error detail
+  /// (e.g. `{"error":"Feature not found"}`) shows up in default logs
+  /// without forcing every caller to type-check and unwrap [body] by
+  /// hand. The sanitize-and-truncate pass on the constructor caps the
+  /// size and strips control characters, so the value rendered here is
+  /// already the safe form.
   final String? body;
 
   static const int _maxBodyChars = 512;
@@ -73,7 +77,10 @@ final class CustomFlagApiException extends CustomFlagsException {
   }
 
   @override
-  String toString() => '$runtimeType(message: $message, statusCode: $statusCode)';
+  String toString() {
+    final bodyPart = body != null ? ', body: $body' : '';
+    return '$runtimeType(message: $message, statusCode: $statusCode$bodyPart)';
+  }
 
   @override
   List<Object?> get props => [message, statusCode, body];

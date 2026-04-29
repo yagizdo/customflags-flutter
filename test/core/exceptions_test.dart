@@ -38,7 +38,7 @@ void main() {
       expect(exception.body, isNull);
     });
 
-    test('[CustomFlagApiException] toString includes statusCode and message but not body', () {
+    test('[CustomFlagApiException] toString includes statusCode, message and body', () {
       final exception = CustomFlagApiException(
         statusCode: 422,
         body: 'validation failed',
@@ -48,7 +48,17 @@ void main() {
       expect(str, contains('CustomFlagApiException'));
       expect(str, contains('422'));
       expect(str, contains('Unprocessable'));
-      expect(str, isNot(contains('validation failed')));
+      expect(str, contains('validation failed'));
+    });
+
+    test('[CustomFlagApiException] toString omits body section when body is null', () {
+      final exception = CustomFlagApiException(
+        statusCode: null,
+        message: 'Connection timeout',
+      );
+      final str = exception.toString();
+      expect(str, contains('Connection timeout'));
+      expect(str, isNot(contains('body:')));
     });
 
     test('[CustomFlagApiException] body sanitization replaces control characters with spaces', () {

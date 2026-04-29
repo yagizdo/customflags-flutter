@@ -89,10 +89,12 @@ class ApiClient {
       }
       final flags = FlagResponse.fromJson(data).flags;
 
-      if (flags.length != 1) {
-        throw CustomFlagApiException(
-          statusCode: response.statusCode,
-          message: 'Expected exactly 1 flag for "$featureKey", got ${flags.length} '
+      if (flags.isEmpty) {
+        return Flag(key: featureKey, value: null);
+      }
+      if (flags.length > 1) {
+        throw MalformedResponseException(
+          message: 'Expected at most 1 flag for "$featureKey", got ${flags.length} '
               '(keys: ${flags.map((f) => f.key).join(", ")})',
         );
       }

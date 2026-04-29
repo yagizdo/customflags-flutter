@@ -57,3 +57,6 @@ GoogleService-Info.plist
 firebase_options.dart
 secrets.dart
 **/secrets/
+
+# Local demo notes — backend flag values used while developing the example app
+DEMO_FLAG_VALUES.md

@@ -15,8 +15,8 @@ flags drive three pieces of UI: a promo banner (bool), an app theme
    ```
 
 2. On your CustomFlags backend, create the three feature keys below
-   for the user identified by `_identifier`. Copy-paste-ready values
-   for a live demo are in [`DEMO_FLAG_VALUES.md`](DEMO_FLAG_VALUES.md).
+   for the user identified by `_identifier`. The "Feature keys" table
+   below lists ready-to-paste sample values for each.
 
 ## Feature keys
 

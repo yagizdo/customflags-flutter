@@ -106,7 +106,7 @@ void main() {
   });
 
   group('ApiClient.fetchFlag — guards', () {
-    test('[ApiClient] fetchFlag returns a synthetic Flag with null value when response is empty', () {
+    test('[ApiClient] fetchFlag returns a synthetic Flag with null value when response is empty', () async {
       final (_, adapter, api) = setup();
       adapter.onGet(
         '/api/v1/flags/dark_mode',
@@ -114,7 +114,7 @@ void main() {
         queryParameters: {'user': identity.identifier},
       );
 
-      expectLater(
+      await expectLater(
         api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
         completion(
           isA<Flag>()
@@ -124,7 +124,7 @@ void main() {
       );
     });
 
-    test('[ApiClient] fetchFlag throws MalformedResponseException when response contains multiple flags', () {
+    test('[ApiClient] fetchFlag throws MalformedResponseException when response contains multiple flags', () async {
       final (_, adapter, api) = setup();
       adapter.onGet(
         '/api/v1/flags/dark_mode',
@@ -134,9 +134,14 @@ void main() {
         queryParameters: {'user': identity.identifier},
       );
 
-      expectLater(
+      await expectLater(
         api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
-        throwsA(isA<MalformedResponseException>()),
+        throwsA(
+          isA<MalformedResponseException>()
+              .having((e) => e.message, 'message', contains('dark_mode'))
+              .having((e) => e.message, 'message', contains('got 2'))
+              .having((e) => e.message, 'message', contains('dark_mode, extra')),
+        ),
       );
     });
   });

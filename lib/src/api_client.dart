@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'constants/api_endpoints.dart';
+import 'constants/regex_patterns.dart';
 import 'core/exceptions.dart';
 import 'core/models/flag_model.dart';
 import 'core/models/flag_response_model.dart';
@@ -93,9 +94,12 @@ class ApiClient {
         return Flag(key: featureKey, value: null);
       }
       if (flags.length > 1) {
+        final sanitizedKeys = flags
+            .map((f) => f.key.replaceAll(kLogInjectionControlCharsPattern, ' '))
+            .join(', ');
         throw MalformedResponseException(
           message: 'Expected at most 1 flag for "$featureKey", got ${flags.length} '
-              '(keys: ${flags.map((f) => f.key).join(", ")})',
+              '(keys: $sanitizedKeys)',
         );
       }
 

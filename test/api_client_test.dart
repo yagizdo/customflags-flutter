@@ -144,6 +144,32 @@ void main() {
         ),
       );
     });
+
+    test(
+      '[ApiClient] fetchFlag sanitizes control characters in flag keys before injecting into MalformedResponseException.message',
+      () async {
+        final (_, adapter, api) = setup();
+        adapter.onGet(
+          '/api/v1/flags/dark_mode',
+          (s) => s.reply(200, {
+            'flags': {
+              'dark_mode': true,
+              'malicious\nINJECTED LOG LINE': 'bad',
+            },
+          }),
+          queryParameters: {'user': identity.identifier},
+        );
+
+        await expectLater(
+          api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
+          throwsA(
+            isA<MalformedResponseException>()
+                .having((e) => e.message, 'message has no LF', isNot(contains('\n')))
+                .having((e) => e.message, 'message has no CR', isNot(contains('\r'))),
+          ),
+        );
+      },
+    );
   });
 
   group('ApiClient — cancelToken', () {

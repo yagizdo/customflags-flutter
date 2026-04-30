@@ -106,7 +106,7 @@ void main() {
   });
 
   group('ApiClient.fetchFlag — guards', () {
-    test('[ApiClient] fetchFlag throws CustomFlagApiException when response contains zero flags', () async {
+    test('[ApiClient] fetchFlag returns a synthetic Flag with null value when response is empty', () async {
       final (_, adapter, api) = setup();
       adapter.onGet(
         '/api/v1/flags/dark_mode',
@@ -116,14 +116,15 @@ void main() {
 
       await expectLater(
         api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
-        throwsA(
-          isA<CustomFlagApiException>()
-              .having((e) => e.message, 'message', contains('got 0')),
+        completion(
+          isA<Flag>()
+              .having((f) => f.key, 'key', 'dark_mode')
+              .having((f) => f.value, 'value', isNull),
         ),
       );
     });
 
-    test('[ApiClient] fetchFlag throws CustomFlagApiException when response contains multiple flags', () async {
+    test('[ApiClient] fetchFlag throws MalformedResponseException when response contains multiple flags', () async {
       final (_, adapter, api) = setup();
       adapter.onGet(
         '/api/v1/flags/dark_mode',
@@ -136,13 +137,39 @@ void main() {
       await expectLater(
         api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
         throwsA(
-          isA<CustomFlagApiException>()
+          isA<MalformedResponseException>()
+              .having((e) => e.message, 'message', contains('dark_mode'))
               .having((e) => e.message, 'message', contains('got 2'))
-              .having((e) => e.message, 'message', contains('keys: dark_mode, extra'))
-              .having((e) => e.body, 'body', isNull),
+              .having((e) => e.message, 'message', contains('dark_mode, extra')),
         ),
       );
     });
+
+    test(
+      '[ApiClient] fetchFlag sanitizes control characters in flag keys before injecting into MalformedResponseException.message',
+      () async {
+        final (_, adapter, api) = setup();
+        adapter.onGet(
+          '/api/v1/flags/dark_mode',
+          (s) => s.reply(200, {
+            'flags': {
+              'dark_mode': true,
+              'malicious\nINJECTED LOG LINE': 'bad',
+            },
+          }),
+          queryParameters: {'user': identity.identifier},
+        );
+
+        await expectLater(
+          api.fetchFlag(identity: identity, featureKey: 'dark_mode'),
+          throwsA(
+            isA<MalformedResponseException>()
+                .having((e) => e.message, 'message has no LF', isNot(contains('\n')))
+                .having((e) => e.message, 'message has no CR', isNot(contains('\r'))),
+          ),
+        );
+      },
+    );
   });
 
   group('ApiClient — cancelToken', () {

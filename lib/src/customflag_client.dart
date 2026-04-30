@@ -40,14 +40,20 @@ class CustomFlagClient {
   late final ApiClient _api;
   Identity? _identity;
 
-  /// Cancellation handle for the most-recent fetch.
+  /// Cancellation handles for every in-flight fetch.
   ///
-  /// Tracked so [setIdentity] can cancel an in-flight request against
+  /// Tracked so [setIdentity] can cancel every request issued against
   /// the previous identity before swapping in the new one — otherwise
   /// a slow response for user A could land after the app has switched
-  /// to user B. Cancelling an already-completed token is a no-op in
-  /// Dio, so this field is not cleared when a fetch finishes.
-  CancelToken? _pendingRequestToken;
+  /// to user B. The set is needed (rather than a single token) because
+  /// the per-widget consumption pattern routinely issues several
+  /// concurrent [getFlag] calls for the same identity; with a single
+  /// slot, only the most-recent token would survive in the field and
+  /// the others would leak past [setIdentity]. Tokens are added on
+  /// fetch start and removed on completion (success or failure), so
+  /// the set stays bounded by the count of concurrently in-flight
+  /// requests. Cancelling an already-completed token is a no-op in Dio.
+  final Set<CancelToken> _pendingTokens = {};
 
   /// Creates a client that talks to the CustomFlags backend using [config].
   ///
@@ -85,8 +91,10 @@ class CustomFlagClient {
       );
     }
     _identity = identity;
-    _pendingRequestToken?.cancel('identity changed');
-    _pendingRequestToken = null;
+    for (final token in _pendingTokens) {
+      token.cancel('identity changed');
+    }
+    _pendingTokens.clear();
   }
 
   /// Fetches every flag assigned to the current [Identity] from the
@@ -108,8 +116,12 @@ class CustomFlagClient {
   Future<List<Flag>> fetchAllFlags() async {
     final identity = _checkIdentity();
     final token = CancelToken();
-    _pendingRequestToken = token;
-    return _api.fetchAllFlags(identity: identity, cancelToken: token);
+    _pendingTokens.add(token);
+    try {
+      return await _api.fetchAllFlags(identity: identity, cancelToken: token);
+    } finally {
+      _pendingTokens.remove(token);
+    }
   }
 
   /// Fetches the [Flag] identified by [featureKey] for the current
@@ -144,12 +156,16 @@ class CustomFlagClient {
       throw ArgumentError.value(featureKey, 'featureKey', 'must not be empty');
     }
     final token = CancelToken();
-    _pendingRequestToken = token;
-    return _api.fetchFlag(
-      identity: identity,
-      featureKey: featureKey,
-      cancelToken: token,
-    );
+    _pendingTokens.add(token);
+    try {
+      return await _api.fetchFlag(
+        identity: identity,
+        featureKey: featureKey,
+        cancelToken: token,
+      );
+    } finally {
+      _pendingTokens.remove(token);
+    }
   }
 
   Identity _checkIdentity() {

@@ -82,5 +82,47 @@ void main() {
             (e is DioException && CancelToken.isCancel(e)))),
       );
     });
+
+    test(
+      '[CustomFlagClient] setIdentity cancels every in-flight getFlag when multiple are pending',
+      () async {
+        final dio = Dio();
+        final adapter = DioAdapter(dio: dio);
+        final api = ApiClient(config: config(), dio: dio);
+        final client = CustomFlagClient(config: config(), apiClient: api);
+
+        adapter.onGet(
+          '/api/v1/flags/dark_mode',
+          (server) => server.reply(
+            200,
+            {'flags': {'dark_mode': true}},
+            delay: const Duration(seconds: 5),
+          ),
+          queryParameters: {'user': 'user_a'},
+        );
+        adapter.onGet(
+          '/api/v1/flags/show_promo_banner',
+          (server) => server.reply(
+            200,
+            {'flags': {'show_promo_banner': true}},
+            delay: const Duration(seconds: 5),
+          ),
+          queryParameters: {'user': 'user_a'},
+        );
+
+        client.setIdentity(const Identity(identifier: 'user_a'));
+        final pendingDark = client.getFlag('dark_mode');
+        final pendingPromo = client.getFlag('show_promo_banner');
+
+        client.setIdentity(const Identity(identifier: 'user_b'));
+
+        final cancelMatcher = throwsA(predicate((e) =>
+            e is CustomFlagApiException ||
+            (e is DioException && CancelToken.isCancel(e))));
+
+        await expectLater(pendingDark, cancelMatcher);
+        await expectLater(pendingPromo, cancelMatcher);
+      },
+    );
   });
 }

@@ -24,6 +24,20 @@ void main() async {
   ));
 }
 
+/// Single demo page. Four flag-driven sections:
+///
+/// * page [Theme], driven by `theme_variant` (string)
+/// * a banner that swaps default ↔ promo, driven by `show_promo_banner` (bool)
+/// * an announcement card, driven by `home_announcement` (JSON)
+/// * a free-trial tile, driven by `free_trial_days` (int)
+///
+/// Each section always renders something — the page is never empty.
+/// That mirrors how a real app uses feature flags: ship a baseline
+/// experience, then swap in a richer one when the flag is on.
+///
+/// The AppBar refresh button calls [CustomFlagClient.refresh], which
+/// fetches fresh flags from the backend and updates every
+/// [FlagBuilder] in the subtree via [CustomFlagClient.flagStream].
 class HomePage extends StatelessWidget {
   const HomePage({super.key, required this.client});
 

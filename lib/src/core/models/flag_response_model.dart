@@ -29,6 +29,10 @@ class FlagResponse extends Equatable {
     );
   }
 
+  /// Serializes this response back to the backend's JSON envelope format.
+  ///
+  /// Produces `{'flags': {'key1': value1, 'key2': value2, ...}}`.
+  /// Round-trips through [fromJson].
   Map<String, dynamic> toJson() => {
         'flags': {for (final f in flags) f.key: f.value},
       };

@@ -4,18 +4,18 @@ import 'package:flutter/material.dart';
 import 'flag_builder.dart';
 import 'home_announcement.dart';
 
-// TODO: replace these with values from your CustomFlags backend before
-// running the example. With placeholder values every flag fetch fails
-// and each section renders its fallback.
 const String _apiKey =
     'oflag_development_d519e82f2f884da452980a78ea25729dd26c45e789d7afb1';
 const String _identifier = 'demouser';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final client = CustomFlagClient(
     config: CustomFlagConfig(apiKey: _apiKey),
   );
   client.setIdentity(const Identity(identifier: _identifier));
+  await client.init();
 
   runApp(MaterialApp(
     title: 'CustomFlags Demo',
@@ -24,32 +24,10 @@ void main() {
   ));
 }
 
-/// Single demo page. Four flag-driven sections:
-///
-/// * page [Theme], driven by `theme_variant` (string)
-/// * a banner that swaps default ↔ promo, driven by `show_promo_banner` (bool)
-/// * an announcement card, driven by `home_announcement` (JSON)
-/// * a free-trial tile, driven by `free_trial_days` (int)
-///
-/// Each section always renders something — the page is never empty.
-/// That mirrors how a real app uses feature flags: ship a baseline
-/// experience, then swap in a richer one when the flag is on.
-///
-/// The AppBar refresh button bumps `_refreshCount`, which causes every
-/// [FlagBuilder] in the subtree to re-issue its fetch.
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key, required this.client});
 
   final CustomFlagClient client;
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  int _refreshCount = 0;
-
-  void _refresh() => setState(() => _refreshCount++);
 
   @override
   Widget build(BuildContext context) {
@@ -60,37 +38,33 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: 'Refresh flags',
             icon: const Icon(Icons.refresh),
-            onPressed: _refresh,
+            onPressed: () => client.refresh(),
           ),
         ],
       ),
       body: FlagBuilder(
-        client: widget.client,
+        client: client,
         featureKey: 'theme_variant',
-        refreshCount: _refreshCount,
         builder: (context, flag) {
-          final variant = flag?.getString(fallback: 'free') ?? 'free';
+          final variant = flag.getString(fallback: 'free');
           return Theme(
             data: _themeFor(variant),
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
                 FlagBuilder(
-                  client: widget.client,
+                  client: client,
                   featureKey: 'show_promo_banner',
-                  refreshCount: _refreshCount,
                   builder: (context, flag) {
-                    final showPromo = flag?.getBool(fallback: false) ?? false;
+                    final showPromo = flag.getBool(fallback: false);
                     return _Banner(showPromo: showPromo);
                   },
                 ),
                 FlagBuilder(
-                  client: widget.client,
+                  client: client,
                   featureKey: 'home_announcement',
-                  refreshCount: _refreshCount,
                   builder: (context, flag) {
-                    final json = flag?.getJson(fallback: const {}) ??
-                        const <String, dynamic>{};
+                    final json = flag.getJson(fallback: const {});
                     final announcement =
                         HomeAnnouncement.tryFromJson(json) ??
                             HomeAnnouncement.defaultAnnouncement;
@@ -98,11 +72,10 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
                 FlagBuilder(
-                  client: widget.client,
+                  client: client,
                   featureKey: 'free_trial_days',
-                  refreshCount: _refreshCount,
                   builder: (context, flag) {
-                    final days = flag?.getInt(fallback: 0) ?? 0;
+                    final days = flag.getInt(fallback: 0);
                     return _FreeTrialTile(days: days);
                   },
                 ),

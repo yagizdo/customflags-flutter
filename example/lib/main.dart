@@ -50,6 +50,11 @@ class HomePage extends StatelessWidget {
         title: const Text('CustomFlags Demo'),
         actions: [
           IconButton(
+            tooltip: 'Clear cache',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => client.clearCache(),
+          ),
+          IconButton(
             tooltip: 'Refresh flags',
             icon: const Icon(Icons.refresh),
             onPressed: () => client.refresh(),

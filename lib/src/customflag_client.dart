@@ -219,6 +219,30 @@ class CustomFlagClient {
     return identity;
   }
 
+  /// Clears both the in-memory and disk flag cache for the current
+  /// identity, then emits an empty snapshot on [flagStream] so every
+  /// listener (e.g. [FlagBuilder]) rebuilds with fallback values.
+  ///
+  /// Typical use cases:
+  ///
+  /// * **Logout** — wipe cached flags so the next user starts fresh.
+  /// * **Testing** — reset to a clean slate between test runs.
+  /// * **Debugging** — force the app to re-fetch from the backend on
+  ///   the next [init] or [refresh] call.
+  ///
+  /// ```dart
+  /// // On logout, clear cached data before dropping the client:
+  /// await client.clearCache();
+  /// client.dispose();
+  /// ```
+  ///
+  /// Throws [ConfigurationException] if [setIdentity] has not been
+  /// called yet — without an identity there is no disk key to clear.
+  Future<void> clearCache() async {
+    final identity = _checkIdentity();
+    await _cache.clearAll(identity.identifier);
+  }
+
   /// Releases resources held by the client.
   ///
   /// Closes the underlying [flagStream]. After this call the client

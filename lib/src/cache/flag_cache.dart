@@ -59,10 +59,20 @@ class FlagCache {
     _controller.add(Map.unmodifiable(_flags));
   }
 
+  /// Erases the in-memory cache and the disk entry for [identifier],
+  /// then emits an empty snapshot on [stream] so listeners rebuild
+  /// with fallback values.
+  Future<void> clearAll(String identifier) async {
+    _flags = {};
+    await _storage.clear(identifier);
+    _controller.add(Map.unmodifiable(_flags));
+  }
+
   /// Resets the in-memory cache to empty.
   ///
-  /// Does **not** clear the disk entry — call [FlagStorage.clear]
-  /// separately if disk cleanup is needed.
+  /// Does **not** touch disk. Used internally by identity-switch
+  /// logic where the old identity's disk entry is still valid
+  /// (each identity has its own storage key).
   void clear() {
     _flags = {};
   }

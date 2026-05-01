@@ -29,6 +29,10 @@ class FlagResponse extends Equatable {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'flags': {for (final f in flags) f.key: f.value},
+      };
+
   @override
   List<Object?> get props => [flags];
 }

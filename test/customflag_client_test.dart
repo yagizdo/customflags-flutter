@@ -1,8 +1,11 @@
 import 'package:customflags/customflags.dart';
 import 'package:customflags/src/api_client.dart';
+import 'package:customflags/src/cache/flag_cache.dart';
+import 'package:customflags/src/cache/flag_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   CustomFlagConfig config() => CustomFlagConfig(apiKey: 'test_key');
@@ -12,20 +15,9 @@ void main() {
       final client = CustomFlagClient(config: config());
       expect(client.fetchAllFlags, throwsA(isA<ConfigurationException>()));
     });
-
-    test('[CustomFlagClient] getFlag throws ConfigurationException when setIdentity has not been called', () {
-      final client = CustomFlagClient(config: config());
-      expect(() => client.getFlag('any'), throwsA(isA<ConfigurationException>()));
-    });
   });
 
   group('CustomFlagClient — argument validation', () {
-    test('[CustomFlagClient] getFlag throws ArgumentError when featureKey is empty', () {
-      final client = CustomFlagClient(config: config());
-      client.setIdentity(const Identity(identifier: 'u'));
-      expect(() => client.getFlag(''), throwsA(isA<ArgumentError>()));
-    });
-
     test('[CustomFlagClient] setIdentity throws ConfigurationException when identifier is empty', () {
       final client = CustomFlagClient(config: config());
       expect(
@@ -82,47 +74,346 @@ void main() {
             (e is DioException && CancelToken.isCancel(e)))),
       );
     });
+  });
 
-    test(
-      '[CustomFlagClient] setIdentity cancels every in-flight getFlag when multiple are pending',
-      () async {
-        final dio = Dio();
-        final adapter = DioAdapter(dio: dio);
-        final api = ApiClient(config: config(), dio: dio);
-        final client = CustomFlagClient(config: config(), apiClient: api);
+  group('CustomFlagClient — init()', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
 
-        adapter.onGet(
-          '/api/v1/flags/dark_mode',
-          (server) => server.reply(
-            200,
-            {'flags': {'dark_mode': true}},
-            delay: const Duration(seconds: 5),
-          ),
-          queryParameters: {'user': 'user_a'},
-        );
-        adapter.onGet(
-          '/api/v1/flags/show_promo_banner',
-          (server) => server.reply(
-            200,
-            {'flags': {'show_promo_banner': true}},
-            delay: const Duration(seconds: 5),
-          ),
-          queryParameters: {'user': 'user_a'},
-        );
+    test('[CustomFlagClient] init loads flags from network and populates cache', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final storage = FlagStorage();
+      final cache = FlagCache(storage: storage);
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
 
-        client.setIdentity(const Identity(identifier: 'user_a'));
-        final pendingDark = client.getFlag('dark_mode');
-        final pendingPromo = client.getFlag('show_promo_banner');
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true, 'theme': 'blue'},
+        }),
+        queryParameters: {'user': 'user_42'},
+      );
 
-        client.setIdentity(const Identity(identifier: 'user_b'));
+      client.setIdentity(const Identity(identifier: 'user_42'));
+      await client.init();
 
-        final cancelMatcher = throwsA(predicate((e) =>
-            e is CustomFlagApiException ||
-            (e is DioException && CancelToken.isCancel(e))));
+      expect(client.getFlag('dark_mode').getBool(), true);
+      expect(client.getFlag('theme').getString(), 'blue');
+    });
 
-        await expectLater(pendingDark, cancelMatcher);
-        await expectLater(pendingPromo, cancelMatcher);
-      },
-    );
+    test('[CustomFlagClient] init loads from disk when network fails', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final storage = FlagStorage();
+      await storage.write('user_42', {
+        'cached_flag': const Flag(key: 'cached_flag', value: 'from_disk'),
+      });
+      final cache = FlagCache(storage: storage);
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.throws(
+          500,
+          DioException(requestOptions: RequestOptions(), type: DioExceptionType.connectionError),
+        ),
+        queryParameters: {'user': 'user_42'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_42'));
+      await client.init();
+
+      expect(client.getFlag('cached_flag').getString(), 'from_disk');
+    });
+
+    test('[CustomFlagClient] init completes without throwing when no disk and no network', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.throws(
+          500,
+          DioException(requestOptions: RequestOptions(), type: DioExceptionType.connectionError),
+        ),
+        queryParameters: {'user': 'user_42'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_42'));
+      await client.init();
+
+      expect(client.getFlag('any_key').value, isNull);
+    });
+
+    test('[CustomFlagClient] init throws ConfigurationException when identity not set', () {
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        cache: cache,
+      );
+
+      expect(client.init, throwsA(isA<ConfigurationException>()));
+    });
+  });
+
+  group('CustomFlagClient — sync reads', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('[CustomFlagClient] getFlag returns Flag with null value before init', () {
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(config: config(), cache: cache);
+      client.setIdentity(const Identity(identifier: 'u'));
+
+      final flag = client.getFlag('anything');
+      expect(flag.key, 'anything');
+      expect(flag.value, isNull);
+    });
+
+    test('[CustomFlagClient] getAllFlags returns empty map before init', () {
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(config: config(), cache: cache);
+      client.setIdentity(const Identity(identifier: 'u'));
+
+      expect(client.getAllFlags(), isEmpty);
+    });
+
+    test('[CustomFlagClient] getFlag is synchronous after init', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'u'));
+      await client.init();
+
+      final flag = client.getFlag('dark_mode');
+      expect(flag.getBool(), true);
+    });
+  });
+
+  group('CustomFlagClient — refresh()', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('[CustomFlagClient] refresh updates cache with fresh data', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'u'));
+      await client.init();
+      expect(client.getFlag('dark_mode').getBool(), true);
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': false},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      await client.refresh();
+      expect(client.getFlag('dark_mode').getBool(), false);
+    });
+
+    test('[CustomFlagClient] refresh keeps old cache when network fails', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'u'));
+      await client.init();
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.throws(
+          500,
+          DioException(requestOptions: RequestOptions(), type: DioExceptionType.connectionError),
+        ),
+        queryParameters: {'user': 'u'},
+      );
+
+      await client.refresh();
+      expect(client.getFlag('dark_mode').getBool(), true);
+    });
+
+    test('[CustomFlagClient] refresh throws ConfigurationException when identity not set', () {
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(config: config(), cache: cache);
+
+      expect(client.refresh, throwsA(isA<ConfigurationException>()));
+    });
+  });
+
+  group('CustomFlagClient — flagStream', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('[CustomFlagClient] flagStream emits after init', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      final emissions = <Map<String, Flag>>[];
+      client.flagStream.listen(emissions.add);
+
+      client.setIdentity(const Identity(identifier: 'u'));
+      await client.init();
+
+      await Future<void>.delayed(Duration.zero);
+      expect(emissions.isNotEmpty, isTrue);
+      expect(emissions.last['dark_mode']!.getBool(), true);
+    });
+
+    test('[CustomFlagClient] flagStream emits after refresh', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'u'));
+      await client.init();
+
+      final emissions = <Map<String, Flag>>[];
+      client.flagStream.listen(emissions.add);
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': false},
+        }),
+        queryParameters: {'user': 'u'},
+      );
+
+      await client.refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions.isNotEmpty, isTrue);
+      expect(emissions.last['dark_mode']!.getBool(), false);
+    });
+  });
+
+  group('CustomFlagClient — setIdentity clears cache', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('[CustomFlagClient] setIdentity clears the in-memory cache', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'user_a'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_a'));
+      await client.init();
+      expect(client.getFlag('dark_mode').getBool(), true);
+
+      client.setIdentity(const Identity(identifier: 'user_b'));
+      expect(client.getFlag('dark_mode').value, isNull);
+    });
   });
 }

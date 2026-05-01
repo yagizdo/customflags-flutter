@@ -21,6 +21,11 @@ class Flag extends Equatable {
 
   const Flag({required this.key, required this.value});
 
+  Map<String, dynamic> toJson() => {'key': key, 'value': value};
+
+  factory Flag.fromJson(Map<String, dynamic> json) =>
+      Flag(key: json['key'] as String, value: json['value']);
+
   @override
   List<Object?> get props => [key, value];
 

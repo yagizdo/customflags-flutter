@@ -416,4 +416,116 @@ void main() {
       expect(client.getFlag('dark_mode').value, isNull);
     });
   });
+
+  group('CustomFlagClient — clearCache()', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('[CustomFlagClient] clearCache throws ConfigurationException when identity is not set', () {
+      final client = CustomFlagClient(
+        config: config(),
+        cache: FlagCache(storage: FlagStorage()),
+      );
+
+      expect(client.clearCache, throwsA(isA<ConfigurationException>()));
+    });
+
+    test('[CustomFlagClient] clearCache empties in-memory cache and removes disk entry', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final storage = FlagStorage();
+      final cache = FlagCache(storage: storage);
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'user_42'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_42'));
+      await client.init();
+      expect(client.getFlag('dark_mode').getBool(), true);
+
+      await client.clearCache();
+
+      expect(client.getAllFlags(), isEmpty);
+      expect(client.getFlag('dark_mode').value, isNull);
+      final disk = await storage.read('user_42');
+      expect(disk, isEmpty);
+    });
+
+    test('[CustomFlagClient] clearCache emits an empty snapshot on flagStream', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(200, {
+          'flags': {'dark_mode': true},
+        }),
+        queryParameters: {'user': 'user_42'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_42'));
+      await client.init();
+
+      final emissions = <Map<String, Flag>>[];
+      client.flagStream.listen(emissions.add);
+
+      await client.clearCache();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, isNotEmpty);
+      expect(emissions.last, isEmpty);
+    });
+
+    test('[CustomFlagClient] clearCache cancels in-flight refresh — concurrent fetch does not repopulate cache', () async {
+      final dio = Dio();
+      final adapter = DioAdapter(dio: dio);
+      final api = ApiClient(config: config(), dio: dio);
+      final cache = FlagCache(storage: FlagStorage());
+      final client = CustomFlagClient(
+        config: config(),
+        apiClient: api,
+        cache: cache,
+      );
+
+      adapter.onGet(
+        '/api/v1/flags',
+        (server) => server.reply(
+          200,
+          {'flags': {'dark_mode': true}},
+          delay: const Duration(seconds: 5),
+        ),
+        queryParameters: {'user': 'user_42'},
+      );
+
+      client.setIdentity(const Identity(identifier: 'user_42'));
+
+      final pendingRefresh = client.refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      await client.clearCache();
+      await pendingRefresh;
+
+      expect(client.getFlag('dark_mode').value, isNull,
+          reason: 'cancelled refresh must not repopulate the cache after clearCache');
+    });
+  });
 }

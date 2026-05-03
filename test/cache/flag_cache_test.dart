@@ -161,6 +161,70 @@ void main() {
     });
   });
 
+  group('FlagCache — clearAll', () {
+    test('[FlagCache] clearAll empties the in-memory cache', () async {
+      final cache = FlagCache(storage: FlagStorage());
+      await cache.update('user_42', [
+        const Flag(key: 'dark_mode', value: true),
+      ]);
+
+      await cache.clearAll('user_42');
+
+      expect(cache.getAllFlags(), isEmpty);
+      expect(cache.getFlag('dark_mode').value, isNull);
+    });
+
+    test('[FlagCache] clearAll removes the disk entry for the identifier', () async {
+      final storage = FlagStorage();
+      final cache = FlagCache(storage: storage);
+      await cache.update('user_42', [
+        const Flag(key: 'dark_mode', value: true),
+      ]);
+
+      await cache.clearAll('user_42');
+      final reloaded = await storage.read('user_42');
+
+      expect(reloaded, isEmpty);
+    });
+
+    test('[FlagCache] clearAll emits an empty snapshot on the stream', () async {
+      final cache = FlagCache(storage: FlagStorage());
+      await cache.update('user_42', [
+        const Flag(key: 'dark_mode', value: true),
+      ]);
+
+      final emissions = <Map<String, Flag>>[];
+      cache.stream.listen(emissions.add);
+
+      await cache.clearAll('user_42');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(emissions, isNotEmpty);
+      expect(emissions.last, isEmpty);
+    });
+
+    test('[FlagCache] clearAll does not clear in-memory or emit when storage throws', () async {
+      final cache = FlagCache(storage: _ThrowingStorage());
+      await cache.update('user_42', [
+        const Flag(key: 'dark_mode', value: true),
+      ]);
+
+      final emissions = <Map<String, Flag>>[];
+      cache.stream.listen(emissions.add);
+
+      await expectLater(
+        cache.clearAll('user_42'),
+        throwsA(isA<StateError>()),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cache.getAllFlags(), isNotEmpty,
+          reason: 'in-memory map must remain populated when disk clear fails');
+      expect(emissions.where((m) => m.isEmpty), isEmpty,
+          reason: 'no empty snapshot must be emitted when disk clear fails');
+    });
+  });
+
   group('FlagCache — dispose', () {
     test('[FlagCache] dispose closes the stream', () async {
       final cache = FlagCache(storage: FlagStorage());
@@ -173,4 +237,16 @@ void main() {
       await completer.future;
     });
   });
+}
+
+class _ThrowingStorage implements FlagStorage {
+  @override
+  Future<Map<String, Flag>> read(String identifier) async => {};
+
+  @override
+  Future<void> write(String identifier, Map<String, Flag> flags) async {}
+
+  @override
+  Future<void> clear(String identifier) async =>
+      throw StateError('disk failure');
 }

@@ -73,7 +73,14 @@ class CustomFlagClient {
   }
 
   /// Broadcast stream that emits the full flag map after every
-  /// [init], [refresh], or [setIdentity] call that changes cached data.
+  /// [init] (when disk data exists or the network fetch succeeds),
+  /// [refresh], or [clearCache] call that updates the cache.
+  ///
+  /// Note: [setIdentity] clears the in-memory cache but does **not**
+  /// emit on this stream — listeners keep the previous emission until
+  /// the next [init], [refresh], or [clearCache] lands. Trigger an
+  /// explicit [refresh] after switching identity if the UI must rebuild
+  /// immediately.
   ///
   /// Use with `StreamBuilder` to rebuild widgets when flags change:
   ///
@@ -221,7 +228,8 @@ class CustomFlagClient {
 
   /// Clears both the in-memory and disk flag cache for the current
   /// identity, then emits an empty snapshot on [flagStream] so every
-  /// listener (e.g. [FlagBuilder]) rebuilds with fallback values.
+  /// listener (e.g. a `StreamBuilder` on [flagStream]) rebuilds with
+  /// fallback values.
   ///
   /// Typical use cases:
   ///
@@ -240,6 +248,10 @@ class CustomFlagClient {
   /// called yet — without an identity there is no disk key to clear.
   Future<void> clearCache() async {
     final identity = _checkIdentity();
+    for (final token in _pendingTokens) {
+      token.cancel('cache cleared');
+    }
+    _pendingTokens.clear();
     await _cache.clearAll(identity.identifier);
   }
 
@@ -248,6 +260,7 @@ class CustomFlagClient {
   /// Closes the underlying [flagStream]. After this call the client
   /// must not be used.
   void dispose() {
+    _api.close();
     _cache.dispose();
   }
 }

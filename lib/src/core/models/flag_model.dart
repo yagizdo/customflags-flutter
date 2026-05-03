@@ -23,7 +23,7 @@ class Flag extends Equatable {
 
   /// Serializes this flag to a JSON-compatible map.
   ///
-  /// Used by [FlagStorage] to persist cached flags to disk.
+  /// Used by `FlagStorage` to persist cached flags to disk.
   /// Round-trips through [fromJson] for all supported value types
   /// (bool, String, int, double, null, and `Map<String, dynamic>`).
   Map<String, dynamic> toJson() => {'key': key, 'value': value};

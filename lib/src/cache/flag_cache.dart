@@ -6,8 +6,11 @@ import 'flag_storage.dart';
 /// In-memory flag cache backed by disk storage and a broadcast stream.
 ///
 /// Holds the latest flag map in memory for synchronous reads via
-/// [getFlag] and [getAllFlags]. Mutations ([load], [update], [clear])
-/// update the in-memory map and notify listeners through [stream].
+/// [getFlag] and [getAllFlags]. Mutations [load] (when disk data
+/// exists), [update], and [clearAll] update the in-memory map and
+/// notify listeners through [stream]; [clear] resets the in-memory
+/// map without emitting (used by identity-switch logic where the
+/// previous identity's disk entry is still valid).
 /// Disk persistence is delegated to [FlagStorage].
 class FlagCache {
   final FlagStorage _storage;
@@ -63,8 +66,8 @@ class FlagCache {
   /// then emits an empty snapshot on [stream] so listeners rebuild
   /// with fallback values.
   Future<void> clearAll(String identifier) async {
-    _flags = {};
     await _storage.clear(identifier);
+    _flags = {};
     _controller.add(Map.unmodifiable(_flags));
   }
 

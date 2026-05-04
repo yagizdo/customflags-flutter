@@ -176,6 +176,39 @@ void main() {
     });
   });
 
+  group('FlagResponse.toJson', () {
+    test('[FlagResponse.toJson] serializes flags into the envelope format', () {
+      const response = FlagResponse(flags: [
+        Flag(key: 'dark_mode', value: true),
+        Flag(key: 'theme', value: 'blue'),
+      ]);
+
+      expect(response.toJson(), {
+        'flags': {
+          'dark_mode': true,
+          'theme': 'blue',
+        },
+      });
+    });
+
+    test('[FlagResponse.toJson] empty flags produces empty map', () {
+      const response = FlagResponse(flags: []);
+      expect(response.toJson(), {'flags': <String, dynamic>{}});
+    });
+
+    test('[FlagResponse.toJson] round-trips through fromJson (invariant)', () {
+      const original = FlagResponse(flags: [
+        Flag(key: 'a', value: true),
+        Flag(key: 'b', value: 'x'),
+        Flag(key: 'c', value: 42),
+        Flag(key: 'd', value: <String, dynamic>{'nested': true}),
+      ]);
+
+      final restored = FlagResponse.fromJson(original.toJson());
+      expect(restored, equals(original));
+    });
+  });
+
   group('FlagResponse.fromJson — malformed envelopes', () {
     // These cover the real-world failure modes where the server returns a
     // 200 with a body that doesn't match the expected shape (upstream proxy

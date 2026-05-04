@@ -21,6 +21,20 @@ class Flag extends Equatable {
 
   const Flag({required this.key, required this.value});
 
+  /// Serializes this flag to a JSON-compatible map.
+  ///
+  /// Used by `FlagStorage` to persist cached flags to disk.
+  /// Round-trips through [fromJson] for all supported value types
+  /// (bool, String, int, double, null, and `Map<String, dynamic>`).
+  Map<String, dynamic> toJson() => {'key': key, 'value': value};
+
+  /// Deserializes a [Flag] from a JSON map produced by [toJson].
+  ///
+  /// Throws [TypeError] if the map does not contain a `key` field
+  /// of type [String].
+  factory Flag.fromJson(Map<String, dynamic> json) =>
+      Flag(key: json['key'] as String, value: json['value']);
+
   @override
   List<Object?> get props => [key, value];
 

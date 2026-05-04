@@ -474,4 +474,64 @@ void main() {
       }
     });
   });
+
+  group('Flag.toJson', () {
+    test('[Flag.toJson] serializes key and value to a map', () {
+      const flag = Flag(key: 'dark_mode', value: true);
+      expect(flag.toJson(), {'key': 'dark_mode', 'value': true});
+    });
+
+    test('[Flag.toJson] serializes null value', () {
+      const flag = Flag(key: 'missing', value: null);
+      expect(flag.toJson(), {'key': 'missing', 'value': null});
+    });
+
+    test('[Flag.toJson] serializes Map value', () {
+      const flag = Flag(
+        key: 'config',
+        value: <String, dynamic>{'color': 'blue'},
+      );
+      expect(flag.toJson(), {
+        'key': 'config',
+        'value': {'color': 'blue'},
+      });
+    });
+
+    test('[Flag.toJson] round-trips through fromJson for every supported type (invariant)', () {
+      final flags = [
+        const Flag(key: 'b', value: true),
+        const Flag(key: 's', value: 'hello'),
+        const Flag(key: 'i', value: 42),
+        const Flag(key: 'd', value: 3.14),
+        const Flag(key: 'n', value: null),
+        const Flag(key: 'j', value: <String, dynamic>{'k': 'v'}),
+      ];
+      for (final original in flags) {
+        final restored = Flag.fromJson(original.toJson());
+        expect(restored, equals(original), reason: 'round-trip failed for $original');
+      }
+    });
+  });
+
+  group('Flag.fromJson', () {
+    test('[Flag.fromJson] deserializes key and value from a map', () {
+      final flag = Flag.fromJson(const {'key': 'dark_mode', 'value': true});
+      expect(flag.key, 'dark_mode');
+      expect(flag.value, true);
+    });
+
+    test('[Flag.fromJson] deserializes null value', () {
+      final flag = Flag.fromJson(const {'key': 'missing', 'value': null});
+      expect(flag.key, 'missing');
+      expect(flag.value, isNull);
+    });
+
+    test('[Flag.fromJson] deserializes Map value', () {
+      final flag = Flag.fromJson(const {
+        'key': 'config',
+        'value': <String, dynamic>{'color': 'blue'},
+      });
+      expect(flag.getJson(), {'color': 'blue'});
+    });
+  });
 }

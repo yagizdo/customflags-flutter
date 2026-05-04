@@ -108,7 +108,7 @@ void main() {
       expect(client.getFlag('theme').getString(), 'blue');
     });
 
-    test('[CustomFlagClient] init loads from disk when network fails', () async {
+    test('[CustomFlagClient] init throws on network failure but preserves disk cache', () async {
       final dio = Dio();
       final adapter = DioAdapter(dio: dio);
       final api = ApiClient(config: config(), dio: dio);
@@ -133,12 +133,12 @@ void main() {
       );
 
       client.setIdentity(const Identity(identifier: 'user_42'));
-      await client.init();
+      await expectLater(client.init, throwsA(isA<CustomFlagApiException>()));
 
       expect(client.getFlag('cached_flag').getString(), 'from_disk');
     });
 
-    test('[CustomFlagClient] init completes without throwing when no disk and no network', () async {
+    test('[CustomFlagClient] init throws when no disk cache and network fails', () async {
       final dio = Dio();
       final adapter = DioAdapter(dio: dio);
       final api = ApiClient(config: config(), dio: dio);
@@ -159,7 +159,7 @@ void main() {
       );
 
       client.setIdentity(const Identity(identifier: 'user_42'));
-      await client.init();
+      await expectLater(client.init, throwsA(isA<CustomFlagApiException>()));
 
       expect(client.getFlag('any_key').value, isNull);
     });
@@ -265,7 +265,7 @@ void main() {
       expect(client.getFlag('dark_mode').getBool(), false);
     });
 
-    test('[CustomFlagClient] refresh keeps old cache when network fails', () async {
+    test('[CustomFlagClient] refresh throws on network failure but preserves old cache', () async {
       final dio = Dio();
       final adapter = DioAdapter(dio: dio);
       final api = ApiClient(config: config(), dio: dio);
@@ -296,7 +296,7 @@ void main() {
         queryParameters: {'user': 'u'},
       );
 
-      await client.refresh();
+      await expectLater(client.refresh, throwsA(isA<CustomFlagApiException>()));
       expect(client.getFlag('dark_mode').getBool(), true);
     });
 
@@ -521,8 +521,12 @@ void main() {
       final pendingRefresh = client.refresh();
       await Future<void>.delayed(Duration.zero);
 
+      final throwsExpectation = expectLater(
+        pendingRefresh,
+        throwsA(isA<CustomFlagApiException>()),
+      );
       await client.clearCache();
-      await pendingRefresh;
+      await throwsExpectation;
 
       expect(client.getFlag('dark_mode').value, isNull,
           reason: 'cancelled refresh must not repopulate the cache after clearCache');

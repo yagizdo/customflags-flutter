@@ -130,37 +130,31 @@ class CustomFlagClient {
   ///
   /// Must be called after [setIdentity]. If the network call fails,
   /// the disk cache (if any) remains active — the app starts with
-  /// stale-but-usable data rather than crashing.
+  /// stale-but-usable data rather than crashing. The exception is
+  /// still thrown so the caller knows the network fetch failed.
   ///
   /// Throws [ConfigurationException] if [setIdentity] has not been
   /// called yet.
   Future<void> init() async {
     final identity = _checkIdentity();
     await _cache.load(identity.identifier);
-    try {
-      final flags = await _fetchFromNetwork(identity);
-      await _cache.update(identity.identifier, flags);
-    } on Exception {
-      // Network failure is not fatal during init — disk cache is already loaded.
-    }
+    final flags = await _fetchFromNetwork(identity);
+    await _cache.update(identity.identifier, flags);
   }
 
   /// Fetches the latest flags from the network and updates the cache.
   ///
   /// On success the in-memory cache, disk cache, and [flagStream] are
-  /// all updated. On failure the existing cache is preserved — the
-  /// caller never sees an exception.
+  /// all updated. On failure the existing cache is preserved and the
+  /// exception is rethrown so the caller can react (e.g. show a
+  /// connectivity warning).
   ///
   /// Throws [ConfigurationException] if [setIdentity] has not been
   /// called yet.
   Future<void> refresh() async {
     final identity = _checkIdentity();
-    try {
-      final flags = await _fetchFromNetwork(identity);
-      await _cache.update(identity.identifier, flags);
-    } on Exception {
-      // Keep current cache on failure.
-    }
+    final flags = await _fetchFromNetwork(identity);
+    await _cache.update(identity.identifier, flags);
   }
 
   /// Returns the cached [Flag] for [key] synchronously.
